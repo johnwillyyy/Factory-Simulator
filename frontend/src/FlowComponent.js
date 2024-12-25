@@ -1,60 +1,81 @@
-import React, { useState } from 'react';
-import ReactFlow, { addEdge, MiniMap, Controls, Background, Handle } from 'react-flow-renderer';
-import CircleNode from './CircleNode'; // Make sure the path is correct
-
-const nodeTypes = {
-  circleNode: CircleNode // Register the custom node type
-};
+import React, { useState,useCallback  } from 'react';
+import ReactFlow, {
+  ReactFlowProvider,
+  MiniMap,
+  Controls,
+  Background,
+  applyNodeChanges, applyEdgeChanges
+} from 'react-flow-renderer';
+import Queue from './QueueNode'; // Import your custom node
+import Machine from './MachineNode';
 
 const initialNodes = [
-  { id: '1', type: 'input', data: { label: 'Input Node' }, position: { x: 100, y: 100 }, },
-  { id: '2', type: 'circleNode', data: { label: 'Circle Node' }, position: { x: 300, y: 100 },style:{
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '80px',
-    height: '80px',
-    borderRadius: '50%',
-    backgroundColor: '#FFCC00', // Yellow color
-    color: 'black',
-    border: '2px solid #000', // Black border
-  } }, // Custom circle node
-  { id: '3', type: 'output', data: { label: 'Output Node' }, position: { x: 500, y: 100 } },
 ];
 
-const initialEdges = [
-
-];
-
-const onLoad = (reactFlowInstance) => {
-  reactFlowInstance.fitView();
+const nodeTypes = {
+  queue: Queue,
+  machine: Machine // Register the custom node type
 };
 
 const FlowComponent = () => {
   const [nodes, setNodes] = useState(initialNodes);
-  const [edges, setEdges] = useState(initialEdges);
+  const [edges, setEdges] = useState([]);
 
-  const onNodesChange = (changes) => setNodes((nds) => nds.map((node) => ({...node, ...changes.find((c) => c.id === node.id)})));
-  const onEdgesChange = (changes) => setEdges((eds) => eds.map((edge) => ({...edge, ...changes.find((c) => c.id === edge.id)})));
-  const onConnect = (params) => {setEdges((eds) => addEdge({...params}, eds));
-                                    console.log(params);
-}
+  const onNodesChange = useCallback((changes) => setNodes((ns) => applyNodeChanges(changes, ns)), []);
+  const onEdgesChange = useCallback((changes) => setEdges((es) => applyEdgeChanges(changes, es)), []);
+
+  const addMachineNode = () => {
+    const newNode = {
+      id: `machine_${+new Date()}`,
+      type: 'machine',
+      position: { x: Math.random() * window.innerWidth / 3, y: Math.random() * window.innerHeight / 3 },
+      data: { label: 'New Machine Node' }
+    };
+    setNodes((nds) => [...nds, newNode]);
+  };
+
+  const addQueueNode = () => {
+    const newNode = {
+      id: `queue_${+new Date()}`,
+      type: 'queue',
+      position: { x: Math.random() * window.innerWidth / 3, y: Math.random() * window.innerHeight / 3 },
+      data: { label: 'New Queue Node' }
+    };
+    setNodes((nds) => [...nds, newNode]);
+  };
+
+  const onConnect = useCallback((params) => {
+    setEdges((eds) => [...eds, { ...params, id: `e${params.source}-${params.target}` }]);
+  }, []);
+  
+
 
   return (
-    <ReactFlow
-      nodes={nodes}
-      edges={edges}
-      onNodesChange={onNodesChange}
-      onEdgesChange={onEdgesChange}
-      onConnect={onConnect}
-      fitView
-      onLoad={onLoad}
-      nodeTypes={nodeTypes}
-    >
-      <MiniMap />
-      <Controls />
-      <Background color="#aaa" gap={16} />
-    </ReactFlow>
+    <ReactFlowProvider>
+      <div style={{ height: 600 }}>
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={nodeTypes}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect} // Add this line
+
+                    fitView
+        >
+          <MiniMap />
+          <Controls />
+          <Background color="#aaa" gap={16} />
+        </ReactFlow>
+
+        <button onClick={addMachineNode} style={{ position: 'absolute', right: '10px', top: '50px', zIndex: 100 }}>
+        Add Machine Node
+        </button>
+        <button onClick={addQueueNode} style={{ position: 'absolute', right: '10px', top: '90px', zIndex: 100 }}>
+        Add Queue Node
+        </button>
+      </div>
+    </ReactFlowProvider>
   );
 };
 
