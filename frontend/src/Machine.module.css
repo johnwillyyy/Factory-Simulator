@@ -1,0 +1,24 @@
+.machineNode {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100px;
+    height: 50px;
+    background-color: rgb(202, 202, 202);
+    border: 3px solid black;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  }
+  
+  .machineIcon {
+    width: 25px;
+    height: 25px;
+    margin-left: 8%;
+  }
+  
+  .handle {
+    top: 50%;
+    transform: translateY(-50%);
+    background: black;
+  }
+  
