@@ -1,23 +1,22 @@
 import React from 'react';
 import { Handle, Position } from 'react-flow-renderer';
+import styles from './Machine.module.css';
+import machineIcon from './assets/machine_icon.png';
 
-const Machine = ({ data }) => {
+const Machine = ({ data,id }) => {
   return (
-    <div >
-      <Handle
-        type="target"
-        position={Position.Left} // Correctly set to Position.Left
-        style={{ background: 'black'}}
-        onConnect={(params) => console.log('handle onConnect', params)}
-      />
-            <h1>lol</h1>
-            <h1>lol</h1>
-
+    <div className={styles.machineNode}>
       <Handle
         type="source"
-        position={Position.Right} // Correctly set to Position.Left
-        style={{ background: 'black' }}
-        onConnect={(params) => console.log('handle onConnect', params)}
+        position={Position.Left}
+        className={styles.handle}
+      />
+      <img src={machineIcon} alt="Machine" className={styles.machineIcon} />
+        {id}
+      <Handle
+        type="target"
+        position={Position.Right}
+        className={styles.handle}
       />
     </div>
   );

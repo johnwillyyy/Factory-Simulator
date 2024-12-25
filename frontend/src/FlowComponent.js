@@ -1,4 +1,4 @@
-import React, { useState,useCallback  } from 'react';
+import React, { useState,useCallback, useEffect  } from 'react';
 import ReactFlow, {
   ReactFlowProvider,
   MiniMap,
@@ -8,9 +8,14 @@ import ReactFlow, {
 } from 'react-flow-renderer';
 import Queue from './QueueNode'; // Import your custom node
 import Machine from './MachineNode';
+import styles from './FlowComponent.module.css'
 
-const initialNodes = [
-];
+const initialNodes = [{
+  id: 'queue_1',
+  type: 'queue',
+  position: { x: 100, y: 100 },
+  data: { label: 'Queue Example', colors: ['#ff0000', '#00ff00', '#0000ff','#ff0000', '#00ff00', '#0000ff','#ff0000', '#00ff00', '#0000ff','#ff0000', '#00ff00', '#0000ff'] } // Demo colors
+}];
 
 const nodeTypes = {
   queue: Queue,
@@ -20,33 +25,57 @@ const nodeTypes = {
 const FlowComponent = () => {
   const [nodes, setNodes] = useState(initialNodes);
   const [edges, setEdges] = useState([]);
+  const [qCounter, setqCounter] = useState(1);
+  const [mCounter, setmCounter] = useState(1);
+
+
 
   const onNodesChange = useCallback((changes) => setNodes((ns) => applyNodeChanges(changes, ns)), []);
   const onEdgesChange = useCallback((changes) => setEdges((es) => applyEdgeChanges(changes, es)), []);
 
   const addMachineNode = () => {
     const newNode = {
-      id: `machine_${+new Date()}`,
+      id: `M ${mCounter}`,
       type: 'machine',
       position: { x: Math.random() * window.innerWidth / 3, y: Math.random() * window.innerHeight / 3 },
       data: { label: 'New Machine Node' }
     };
+    setmCounter((count) => count+1);
     setNodes((nds) => [...nds, newNode]);
   };
 
   const addQueueNode = () => {
     const newNode = {
-      id: `queue_${+new Date()}`,
+      id: `Q ${qCounter}`,
       type: 'queue',
       position: { x: Math.random() * window.innerWidth / 3, y: Math.random() * window.innerHeight / 3 },
-      data: { label: 'New Queue Node' }
+      data: { label: 'New Queue Node', colors:[] }
     };
+    setqCounter((count) => count+1);
     setNodes((nds) => [...nds, newNode]);
   };
 
   const onConnect = useCallback((params) => {
+    console.log("Current nodes:", nodes);
+    const sourceNode = nodes.find(node => node.id === params.source);
+    const targetNode = nodes.find(node => node.id === params.target);
+  
+    console.log("Source Node:", sourceNode);
+    console.log("Target Node:", targetNode);
+  
+    if (sourceNode && targetNode && sourceNode.type === targetNode.type) {
+      alert("Cannot connect nodes of the same type.");
+      console.log("Connection attempt between nodes of the same type was blocked.");
+      return;
+    }
+  
     setEdges((eds) => [...eds, { ...params, id: `e${params.source}-${params.target}` }]);
-  }, []);
+  }, [nodes]);
+  
+
+  useEffect(() => {
+    console.log(edges);
+  }, [edges]);
   
 
 
@@ -57,23 +86,29 @@ const FlowComponent = () => {
           nodes={nodes}
           edges={edges}
           nodeTypes={nodeTypes}
+          onConnect={onConnect}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
-          onConnect={onConnect} // Add this line
-
-                    fitView
+          fitView
         >
           <MiniMap />
           <Controls />
           <Background color="#aaa" gap={16} />
         </ReactFlow>
-
-        <button onClick={addMachineNode} style={{ position: 'absolute', right: '10px', top: '50px', zIndex: 100 }}>
-        Add Machine Node
-        </button>
-        <button onClick={addQueueNode} style={{ position: 'absolute', right: '10px', top: '90px', zIndex: 100 }}>
-        Add Queue Node
-        </button>
+        <div className={styles.container}>
+          <button className={styles.button} onClick={addMachineNode}>
+            Add Machine Node
+          </button>
+          <button className={styles.button} onClick={addQueueNode}>
+            Add Queue Node
+          </button>
+          <button className={styles.button}>
+            Start New Simulation
+          </button>
+          <button className={styles.button}>
+            Replay Simulation
+          </button>
+        </div>
       </div>
     </ReactFlowProvider>
   );
