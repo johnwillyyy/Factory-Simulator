@@ -9,6 +9,8 @@ import ReactFlow, {
 import Queue from './QueueNode'; // Import your custom node
 import Machine from './MachineNode';
 import styles from './FlowComponent.module.css'
+import { sendMachineToBackend, sendQueueToBackend } from './apiService'; // Adjust path as needed
+
 
 const initialNodes = [{
   id: 'queue_1',
@@ -25,8 +27,8 @@ const nodeTypes = {
 const FlowComponent = () => {
   const [nodes, setNodes] = useState(initialNodes);
   const [edges, setEdges] = useState([]);
-  const [qCounter, setqCounter] = useState(1);
-  const [mCounter, setmCounter] = useState(1);
+  const [qCounter, setQCounter] = useState(1);
+  const [mCounter, setMCounter] = useState(1);
 
 
 
@@ -40,8 +42,10 @@ const FlowComponent = () => {
       position: { x: Math.random() * window.innerWidth / 3, y: Math.random() * window.innerHeight / 3 },
       data: { label: 'New Machine Node' }
     };
-    setmCounter((count) => count+1);
+    setMCounter((count) => count+1);
     setNodes((nds) => [...nds, newNode]);
+    sendMachineToBackend(newNode);
+
   };
 
   const addQueueNode = () => {
@@ -51,8 +55,10 @@ const FlowComponent = () => {
       position: { x: Math.random() * window.innerWidth / 3, y: Math.random() * window.innerHeight / 3 },
       data: { label: 'New Queue Node', colors:[] }
     };
-    setqCounter((count) => count+1);
+    setQCounter((count) => count+1);
     setNodes((nds) => [...nds, newNode]);
+    sendQueueToBackend(newNode);
+
   };
 
   const onConnect = useCallback((params) => {
