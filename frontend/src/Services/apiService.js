@@ -41,3 +41,26 @@ export const sendQueueToBackend = async (queueData) => {
 };
 
 
+export const sendNodeChangeToBackend = async (node) => {
+  try {
+    const response = await fetch("http://localhost:8080/nodeChange", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(node), // Send the moved node data
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to update node position: ${response.statusText}`);
+    }
+
+    const data = await response.json(); // Parse updated node list from response
+    console.log("Updated node list from backend:", data);
+    return data;
+  } catch (error) {
+    console.error("Error updating node position on backend:", error);
+    return null;
+  }
+};
+
