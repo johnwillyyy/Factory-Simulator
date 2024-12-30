@@ -6,18 +6,13 @@ import ReactFlow, {
   Background,
   applyNodeChanges, applyEdgeChanges
 } from 'react-flow-renderer';
-import Queue from './QueueNode'; // Import your custom node
-import Machine from './MachineNode';
+import Queue from './Components/QueueNode/QueueNode'; // Import your custom node
+import Machine from './Components/MachineNode/MachineNode';
 import styles from './FlowComponent.module.css'
-import { sendMachineToBackend, sendQueueToBackend } from './apiService'; // Adjust path as needed
+import { sendMachineToBackend, sendQueueToBackend,sendNodeChangeToBackend } from './Services/apiService'; // Adjust path as needed
 
 
-const initialNodes = [{
-  id: 'queue_1',
-  type: 'queue',
-  position: { x: 100, y: 100 },
-  data: { label: 'Queue Example', colors: ['#ff0000', '#00ff00', '#0000ff','#ff0000', '#00ff00', '#0000ff','#ff0000', '#00ff00', '#0000ff','#ff0000', '#00ff00', '#0000ff'] } // Demo colors
-}];
+const initialNodes = [];
 
 const nodeTypes = {
   queue: Queue,
@@ -32,42 +27,71 @@ const FlowComponent = () => {
 
 
 
-  const onNodesChange = useCallback((changes) => setNodes((ns) => applyNodeChanges(changes, ns)), []);
+  const onNodesChange = useCallback(async (changes) => {
+    setNodes((ns) => applyNodeChanges(changes, ns)); // Update local state
+  
+    // Iterate over changes to handle moved nodes
+
+  }, []);
+
+
+  const handleNodeDragStop = useCallback(
+    async (event, node) => {
+      const { id, position } = node; // Extract the node ID and final position
+      const updatedNode = { id, x: position.x, y: position.y };
+  
+      console.log("Node drag stopped:", updatedNode);
+  
+      // Send the updated node's position to the backend
+      const updatedList = await sendNodeChangeToBackend(updatedNode);
+      if (updatedList) {
+        setNodes(updatedList); // Update local nodes with the updated list from the backend
+      }
+    },
+    [setNodes]
+  );
+  
+  
+  
   const onEdgesChange = useCallback((changes) => setEdges((es) => applyEdgeChanges(changes, es)), []);
 
-  const addMachineNode = () => {
+  const addMachineNode = async () => {
     const newNode = {
       id: `M ${mCounter}`,
       type: 'machine',
       position: { x: Math.random() * window.innerWidth / 3, y: Math.random() * window.innerHeight / 3 },
-      data: { label: 'New Machine Node' }
+      data: { label: 'New Machine Node' , time: 0},
+      style: { background: "#FFFFFF" } 
     };
+    console.log(newNode);
     setMCounter((count) => count+1);
-    setNodes((nds) => [...nds, newNode]);
-    sendMachineToBackend(newNode);
-
+    const updatedMachines = await sendMachineToBackend(newNode);
+    if (updatedMachines) {
+      setNodes(updatedMachines); // Update the local state with the returned list
+    }
   };
 
-  const addQueueNode = () => {
+  const addQueueNode = async () => {
     const newNode = {
       id: `Q ${qCounter}`,
       type: 'queue',
       position: { x: Math.random() * window.innerWidth / 3, y: Math.random() * window.innerHeight / 3 },
       data: { label: 'New Queue Node', colors:[] }
     };
+    console.log(newNode);
     setQCounter((count) => count+1);
-    setNodes((nds) => [...nds, newNode]);
-    sendQueueToBackend(newNode);
 
+    const updatedQueues = await sendQueueToBackend(newNode);
+    if (updatedQueues) {
+      setNodes(updatedQueues);
+    }
+    
   };
 
   const onConnect = useCallback((params) => {
     console.log("Current nodes:", nodes);
     const sourceNode = nodes.find(node => node.id === params.source);
     const targetNode = nodes.find(node => node.id === params.target);
-  
-    console.log("Source Node:", sourceNode);
-    console.log("Target Node:", targetNode);
   
     if (sourceNode && targetNode && sourceNode.type === targetNode.type) {
       alert("Cannot connect nodes of the same type.");
@@ -95,6 +119,7 @@ const FlowComponent = () => {
           onConnect={onConnect}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
+          onNodeDragStop={handleNodeDragStop} // Add the handler
           fitView
         >
           <MiniMap />
