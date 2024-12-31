@@ -9,83 +9,52 @@ import ReactFlow, {
 import Queue from './Components/QueueNode/QueueNode'; // Import your custom node
 import Machine from './Components/MachineNode/MachineNode';
 import styles from './FlowComponent.module.css'
-import { sendMachineToBackend, sendQueueToBackend,sendNodeChangeToBackend } from './Services/apiService'; // Adjust path as needed
-
-
-const initialNodes = [];
 
 const nodeTypes = {
   queue: Queue,
-  machine: Machine // Register the custom node type
+  machine: Machine 
 };
-
 const FlowComponent = () => {
-  const [nodes, setNodes] = useState(initialNodes);
+  const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
   const [qCounter, setQCounter] = useState(1);
   const [mCounter, setMCounter] = useState(1);
+  const [selectedElement, setSelectedElement] = useState(null);
 
 
 
   const onNodesChange = useCallback(async (changes) => {
-    setNodes((ns) => applyNodeChanges(changes, ns)); // Update local state
-  
-    // Iterate over changes to handle moved nodes
-
+    setNodes((ns) => applyNodeChanges(changes, ns));
   }, []);
 
 
-  const handleNodeDragStop = useCallback(
-    async (event, node) => {
-      const { id, position } = node; // Extract the node ID and final position
-      const updatedNode = { id, x: position.x, y: position.y };
-  
-      console.log("Node drag stopped:", updatedNode);
-  
-      // Send the updated node's position to the backend
-      const updatedList = await sendNodeChangeToBackend(updatedNode);
-      if (updatedList) {
-        setNodes(updatedList); // Update local nodes with the updated list from the backend
-      }
-    },
-    [setNodes]
-  );
-  
-  
-  
   const onEdgesChange = useCallback((changes) => setEdges((es) => applyEdgeChanges(changes, es)), []);
 
-  const addMachineNode = async () => {
+  const addMachineNode =  () => {
     const newNode = {
       id: `M ${mCounter}`,
       type: 'machine',
       position: { x: Math.random() * window.innerWidth / 3, y: Math.random() * window.innerHeight / 3 },
-      data: { label: 'New Machine Node' , time: 0},
-      style: { background: "#FFFFFF" } 
+      data: { label: 'New Machine Node' , time: Math.floor(Math.random() * (25 - 5 + 1)) + 5},
+      style: { 
+        background: "#FFFFFF",
+        border: "3px solid gray" , 
+        borderRadius: "5px", 
+      }
     };
-    console.log(newNode);
     setMCounter((count) => count+1);
-    const updatedMachines = await sendMachineToBackend(newNode);
-    if (updatedMachines) {
-      setNodes(updatedMachines); // Update the local state with the returned list
-    }
+    setNodes((ns) => [...ns, newNode]);
   };
 
-  const addQueueNode = async () => {
+  const addQueueNode = () => {
     const newNode = {
       id: `Q ${qCounter}`,
       type: 'queue',
       position: { x: Math.random() * window.innerWidth / 3, y: Math.random() * window.innerHeight / 3 },
-      data: { label: 'New Queue Node', colors:[] }
+      data: { label: 'New Queue Node', colors:["#ffffff","#ffffff","#ffffff","#ffffff","#ffffff","#ffffff","#ffffff","#ffffff","#ffffff"  ] }
     };
-    console.log(newNode);
     setQCounter((count) => count+1);
-
-    const updatedQueues = await sendQueueToBackend(newNode);
-    if (updatedQueues) {
-      setNodes(updatedQueues);
-    }
-    
+    setNodes((ns) => [...ns, newNode]);
   };
 
   const onConnect = useCallback((params) => {
@@ -98,20 +67,54 @@ const FlowComponent = () => {
       console.log("Connection attempt between nodes of the same type was blocked.");
       return;
     }
-  
+    console.log(edges)
     setEdges((eds) => [...eds, { ...params, id: `e${params.source}-${params.target}` }]);
   }, [nodes]);
   
+  const handleKeyDown = useCallback(
+    (event) => {
+      if (event.key === 'Delete' && selectedElement) {
+        if (selectedElement.id.startsWith('e')) {
+          setEdges((es) => es.filter((edge) => edge.id !== selectedElement.id));
+        } else {
+          setNodes((ns) => ns.filter((node) => node.id !== selectedElement.id));
+        }
+        setSelectedElement(null);
+      }
+    },
+    [selectedElement, setEdges, setNodes]
+  );
+
+
+  const onSelectionChange = ({ nodes, edges }) => {
+    if (nodes.length > 0) {
+      setSelectedElement(nodes[0]); // If a node is selected
+    } else if (edges.length > 0) {
+      setSelectedElement(edges[0]); // If an edge is selected
+    } else {
+      setSelectedElement(null); // If nothing is selected
+    }
+  };
 
   useEffect(() => {
-    console.log(edges);
-  }, [edges]);
+    const handleDown = (e) => {
+      if (e.key === "Delete") {
+        handleKeyDown(e);
+      }
+    };
+  
+    window.addEventListener("keydown", handleDown); 
+  
+    return () => {
+      window.removeEventListener("keydown", handleDown); 
+    };
+  }, [handleKeyDown]); // Dependency to rebind listener when handleKeyDown changes
   
 
 
   return (
     <ReactFlowProvider>
-      <div style={{ height: 600 }}>
+      <div style={{ height: 750 }}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -119,7 +122,7 @@ const FlowComponent = () => {
           onConnect={onConnect}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
-          onNodeDragStop={handleNodeDragStop} // Add the handler
+          onSelectionChange={onSelectionChange}
           fitView
         >
           <MiniMap />
