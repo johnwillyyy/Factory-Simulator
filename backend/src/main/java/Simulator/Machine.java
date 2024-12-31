@@ -1,7 +1,9 @@
 package Simulator;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
-import java.util.PriorityQueue;
 
 public class Machine implements Runnable {
     private String id;
@@ -13,8 +15,8 @@ public class Machine implements Runnable {
     QueueNode nextChosenQueue;
     QueueNode prevChosenQueue;
 
-    PriorityQueue<QueueNode> nextQueueNodes;    //Priority queue to choose most empty queue
-    PriorityQueue<QueueNode> prevQueueNodes;    //No pop operation is done, only peek()
+    List<QueueNode> nextQueueNodes;    // List to store next queues
+    List<QueueNode> prevQueueNodes;    // List to store previous queues
 
     public void addNextQueues(QueueNode queueNode){
         nextQueueNodes.add(queueNode);
@@ -25,18 +27,20 @@ public class Machine implements Runnable {
     }
 
     private void setNextQueue(){
-        nextChosenQueue = nextQueueNodes.peek();
+        nextChosenQueue = nextQueueNodes.stream()
+                .min(Comparator.comparingInt(QueueNode::getSize))
+                .orElse(null);
     }
 
     private void setPrevQueue(){
-        prevChosenQueue = prevQueueNodes.peek();
+        prevChosenQueue = prevQueueNodes.stream()
+                .max(Comparator.comparingInt(QueueNode::getSize))
+                .orElse(null);
     }
 
-
     public Machine(Map<String, Object> node) {
-        nextQueueNodes = new PriorityQueue<>((queue1, queue2) -> Integer.compare(queue1.getSize(), queue2.getSize()));
-        prevQueueNodes = new PriorityQueue<>((queue1, queue2) -> Integer.compare(queue1.getSize(), queue2.getSize()));
-
+        nextQueueNodes = new ArrayList<>(); // Initialize as a List
+        prevQueueNodes = new ArrayList<>(); // Initialize as a List
 
         this.id = (String) node.get("id");
         this.type = (String) node.get("type");
