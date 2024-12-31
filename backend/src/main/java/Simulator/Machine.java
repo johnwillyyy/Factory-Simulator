@@ -48,17 +48,6 @@ public class Machine {
         this.style = style;
     }
 
-    @Override
-    public String toString() {
-        return "Machine{" +
-                "id='" + id + '\'' +
-                ", type='" + type + '\'' +
-                ", position=" + position +
-                ", data=" + data +
-                ", style=" + style +
-                '}';
-    }
-
     // Inner class for Position
     public static class Position {
         private double x;
@@ -130,11 +119,6 @@ public class Machine {
             this.background = background;
         }
 
-        @Override
-        public String toString() {
-            return "Style{" +
-                    "background='" + background + '\'' +
-                    '}';
-        }
+
     }
 }

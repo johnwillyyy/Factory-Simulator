@@ -21,6 +21,29 @@ const FlowComponent = () => {
   const [mCounter, setMCounter] = useState(1);
   const [selectedElement, setSelectedElement] = useState(null);
 
+  const [webSocket, setWebSocket] = useState(null);
+
+
+  useEffect(() => {
+    const socket = new WebSocket('ws://localhost:8080/simulation'); // Replace with your back-end WebSocket URL
+    socket.onopen = () => {
+      console.log('WebSocket connected');
+    };
+    socket.onmessage = (event) => {
+      console.log('Message from server: ', event.data);
+    };
+    socket.onclose = () => {
+      console.log('WebSocket closed');
+    };
+
+    setWebSocket(socket);
+
+    return () => {
+      socket.close(); 
+    };
+  }, []);
+
+
 
 
   const onNodesChange = useCallback(async (changes) => {
@@ -96,6 +119,19 @@ const FlowComponent = () => {
     }
   };
 
+  const startNewSimulation = () => {
+    if (webSocket && webSocket.readyState === WebSocket.OPEN) {
+      const simulationData = {
+        nodes,
+        edges,
+      };
+      webSocket.send(JSON.stringify(simulationData));
+      console.log('Sent simulation data:', simulationData);
+    } else {
+      console.error('WebSocket is not open. Cannot send data.');
+    }
+  };
+
   useEffect(() => {
     const handleDown = (e) => {
       if (e.key === "Delete") {
@@ -108,7 +144,7 @@ const FlowComponent = () => {
     return () => {
       window.removeEventListener("keydown", handleDown); 
     };
-  }, [handleKeyDown]); // Dependency to rebind listener when handleKeyDown changes
+  }, [handleKeyDown]); 
   
 
 
@@ -136,10 +172,10 @@ const FlowComponent = () => {
           <button className={styles.button} onClick={addQueueNode}>
             Add Queue Node
           </button>
-          <button className={styles.button}>
+          <button className={styles.button}onClick={startNewSimulation}>
             Start New Simulation
           </button>
-          <button className={styles.button}>
+          <button className={styles.button} >
             Replay Simulation
           </button>
         </div>

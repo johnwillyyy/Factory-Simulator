@@ -1,6 +1,8 @@
 package Simulator;
 
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class Queue {
 
@@ -8,10 +10,14 @@ public class Queue {
     private String type;
     private Position position;
     private Data data;
+    private BlockingQueue<String> blockedQueue;
 
     // Getters and Setters
     public String getId() {
         return id;
+    }
+    public Queue() {
+        this.blockedQueue = new LinkedBlockingQueue<>(); // Initialize the blocked queue
     }
 
     public void setId(String id) {
@@ -41,16 +47,30 @@ public class Queue {
     public void setData(Data data) {
         this.data = data;
     }
-
-    @Override
-    public String toString() {
-        return "Queue{" +
-                "id='" + id + '\'' +
-                ", type='" + type + '\'' +
-                ", position=" + position +
-                ", data=" + data +
-                '}';
+    public BlockingQueue<String> getBlockedQueue() {
+        return blockedQueue;
     }
+
+
+    public void addToBlockedQueue(String element) {
+        try {
+            blockedQueue.put(element); // Add element to the queue (blocks if full)
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); // Restore interrupted status
+            System.out.println("Interrupted while adding to the blocked queue: " + e.getMessage());
+        }
+    }
+
+    public String removeFromBlockedQueue() {
+        try {
+            return blockedQueue.take(); // Remove element from the queue (blocks if empty)
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); // Restore interrupted status
+            System.out.println("Interrupted while removing from the blocked queue: " + e.getMessage());
+            return null;
+        }
+    }
+
 
     // Inner class for Position
     public static class Position {
@@ -103,12 +123,7 @@ public class Queue {
             this.colors = colors;
         }
 
-        @Override
-        public String toString() {
-            return "Data{" +
-                    "label='" + label + '\'' +
-                    ", colors=" + colors +
-                    '}';
-        }
+
+
     }
 }
