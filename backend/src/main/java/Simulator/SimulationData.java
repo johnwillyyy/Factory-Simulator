@@ -4,7 +4,7 @@ import java.util.List;
 
 public class SimulationData {
     private List<Machine> machines;
-    private List<Queue> queues;
+    private List<QueueNode> queueNodes;
     private List<Edge> edges;
     public List<Machine> getMachines() {
         return machines;
@@ -14,12 +14,12 @@ public class SimulationData {
         this.machines = machines;
     }
 
-    public List<Queue> getQueues() {
-        return queues;
+    public List<QueueNode> getQueues() {
+        return queueNodes;
     }
 
-    public void setQueues(List<Queue> queues) {
-        this.queues = queues;
+    public void setQueues(List<QueueNode> queueNodes) {
+        this.queueNodes = queueNodes;
     }
 
     public List<Edge> getEdges() {

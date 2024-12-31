@@ -1,124 +1,128 @@
 package Simulator;
 
-public class Machine {
+import java.util.Map;
+import java.util.PriorityQueue;
+
+public class Machine implements Runnable {
     private String id;
     private String type;
     private Position position;
     private Data data;
-    private Style style; // New style field
+    private Style style;
 
-    // Getters and Setters
-    public String getId() {
-        return id;
+    QueueNode nextChosenQueue;
+    QueueNode prevChosenQueue;
+
+    PriorityQueue<QueueNode> nextQueueNodes;    //Priority queue to choose most empty queue
+    PriorityQueue<QueueNode> prevQueueNodes;    //No pop operation is done, only peek()
+
+    public void addNextQueues(QueueNode queueNode){
+        nextQueueNodes.add(queueNode);
     }
 
-    public void setId(String id) {
-        this.id = id;
+    public void addPrevQueues(QueueNode queueNode){
+        prevQueueNodes.add(queueNode);
     }
 
-    public String getType() {
-        return type;
+    private void setNextQueue(){
+        nextChosenQueue = nextQueueNodes.peek();
     }
 
-    public void setType(String type) {
-        this.type = type;
+    private void setPrevQueue(){
+        prevChosenQueue = prevQueueNodes.peek();
     }
 
-    public Position getPosition() {
-        return position;
+
+    public Machine(Map<String, Object> node) {
+        nextQueueNodes = new PriorityQueue<>((queue1, queue2) -> Integer.compare(queue1.getSize(), queue2.getSize()));
+        prevQueueNodes = new PriorityQueue<>((queue1, queue2) -> Integer.compare(queue1.getSize(), queue2.getSize()));
+
+
+        this.id = (String) node.get("id");
+        this.type = (String) node.get("type");
+
+        Map<String, Object> posMap = (Map<String, Object>) node.get("position");
+        this.position = new Position(posMap);
+
+        Map<String, Object> dataMap = (Map<String, Object>) node.get("data");
+        this.data = new Data(dataMap);
+
+        Map<String, Object> styleMap = (Map<String, Object>) node.get("style");
+        this.style = new Style(styleMap);
     }
 
-    public void setPosition(Position position) {
-        this.position = position;
+    @Override
+    public void run() {
+        System.out.println(this.getData().getLabel() + " is running.");
+        try {
+            Thread.sleep(this.getData().getTime() * 1000L);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            System.out.println("Machine " + id + " interrupted.");
+        }
+        System.out.println(this.getData().getLabel() + " completed.");
     }
 
-    public Data getData() {
-        return data;
-    }
-
-    public void setData(Data data) {
-        this.data = data;
-    }
-
-    public Style getStyle() {
-        return style;
-    }
-
-    public void setStyle(Style style) {
-        this.style = style;
-    }
-
-    // Inner class for Position
+    // Position Class
     public static class Position {
         private double x;
         private double y;
 
-        public double getX() {
-            return x;
+        public Position(Map<String, Object> posMap) {
+            if (posMap != null) {
+                this.x = (double) posMap.getOrDefault("x", 0.0);
+                this.y = (double) posMap.getOrDefault("y", 0.0);
+            }
         }
 
-        public void setX(double x) {
-            this.x = x;
-        }
-
-        public double getY() {
-            return y;
-        }
-
-        public void setY(double y) {
-            this.y = y;
-        }
-
-        @Override
-        public String toString() {
-            return "Position{" +
-                    "x=" + x +
-                    ", y=" + y +
-                    '}';
-        }
+        // Getters and Setters
+        public double getX() { return x; }
+        public void setX(double x) { this.x = x; }
+        public double getY() { return y; }
+        public void setY(double y) { this.y = y; }
     }
 
-    // Inner class for Data
+    // Data Class
     public static class Data {
         private String label;
-        int time;
+        private int time;
 
-        public int getTime() {
-            return time;
+        public Data(Map<String, Object> dataMap) {
+            if (dataMap != null) {
+                this.label = (String) dataMap.getOrDefault("label", "Default Machine");
+                this.time = (int) dataMap.getOrDefault("time", 10);
+            }
         }
 
-        public void setTime(int time) {
-            this.time = time;
-        }
-
-        public String getLabel() {
-            return label;
-        }
-
-        public void setLabel(String label) {
-            this.label = label;
-        }
-
-        @Override
-        public String toString() {
-            return "Data{" +
-                    "label='" + label + '\'' +
-                    '}';
-        }
+        public String getLabel() { return label; }
+        public void setLabel(String label) { this.label = label; }
+        public int getTime() { return time; }
+        public void setTime(int time) { this.time = time; }
     }
 
-    // Inner class for Style
+    // Style Class
     public static class Style {
         private String background;
 
-        public String getBackground() {
-            return background;
+        public Style(Map<String, Object> styleMap) {
+            if (styleMap != null) {
+                this.background = (String) styleMap.getOrDefault("background", "#FFFFFF");
+            }
         }
 
-        public void setBackground(String background) {
-            this.background = background;
-        }
-
-
+        public String getBackground() { return background; }
+        public void setBackground(String background) { this.background = background; }
     }
+
+    // Getters and Setters
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
+    public String getType() { return type; }
+    public void setType(String type) { this.type = type; }
+    public Position getPosition() { return position; }
+    public void setPosition(Position position) { this.position = position; }
+    public Data getData() { return data; }
+    public void setData(Data data) { this.data = data; }
+    public Style getStyle() { return style; }
+    public void setStyle(Style style) { this.style = style; }
 }

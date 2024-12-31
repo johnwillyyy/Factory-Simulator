@@ -1,23 +1,40 @@
 package Simulator;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-public class Queue {
-
+public class QueueNode {
     private String id;
     private String type;
     private Position position;
     private Data data;
     private BlockingQueue<String> blockedQueue;
 
-    // Getters and Setters
+    public QueueNode(Map<String, Object> node) {
+        this.id = (String) node.get("id");
+        this.type = (String) node.get("type");
+
+        Map<String, Object> posMap = (Map<String, Object>) node.get("position");
+        this.position = new Position(posMap);
+
+        Map<String, Object> dataMap = (Map<String, Object>) node.get("data");
+        this.data = new Data(dataMap);
+
+        this.blockedQueue = new LinkedBlockingQueue<>();
+    }
+
+    public void setBlockedQueue(BlockingQueue<String> blockedQueue) {
+        this.blockedQueue = (BlockingQueue<String>) this.data.getColors();
+    }
+
+    public int getSize(){
+        return this.blockedQueue.size();
+    }
+
     public String getId() {
         return id;
-    }
-    public Queue() {
-        this.blockedQueue = new LinkedBlockingQueue<>(); // Initialize the blocked queue
     }
 
     public void setId(String id) {
@@ -47,35 +64,41 @@ public class Queue {
     public void setData(Data data) {
         this.data = data;
     }
+
     public BlockingQueue<String> getBlockedQueue() {
         return blockedQueue;
     }
 
-
     public void addToBlockedQueue(String element) {
         try {
-            blockedQueue.put(element); // Add element to the queue (blocks if full)
+            blockedQueue.put(element);
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt(); // Restore interrupted status
+            Thread.currentThread().interrupt();
             System.out.println("Interrupted while adding to the blocked queue: " + e.getMessage());
         }
     }
 
     public String removeFromBlockedQueue() {
         try {
-            return blockedQueue.take(); // Remove element from the queue (blocks if empty)
+            return blockedQueue.take();
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt(); // Restore interrupted status
+            Thread.currentThread().interrupt();
             System.out.println("Interrupted while removing from the blocked queue: " + e.getMessage());
             return null;
         }
     }
 
-
-    // Inner class for Position
+    // Position Class
     public static class Position {
         private double x;
         private double y;
+
+        public Position(Map<String, Object> posMap) {
+            if (posMap != null) {
+                this.x = (double) posMap.getOrDefault("x", 0.0);
+                this.y = (double) posMap.getOrDefault("y", 0.0);
+            }
+        }
 
         public double getX() {
             return x;
@@ -102,10 +125,17 @@ public class Queue {
         }
     }
 
-    // Inner class for Data
+    // Data Class
     public static class Data {
         private String label;
         private List<String> colors;
+
+        public Data(Map<String, Object> dataMap) {
+            if (dataMap != null) {
+                this.label = (String) dataMap.getOrDefault("label", "Default Queue");
+                this.colors = (List<String>) dataMap.getOrDefault("colors", List.of());
+            }
+        }
 
         public String getLabel() {
             return label;
@@ -122,8 +152,5 @@ public class Queue {
         public void setColors(List<String> colors) {
             this.colors = colors;
         }
-
-
-
     }
 }
