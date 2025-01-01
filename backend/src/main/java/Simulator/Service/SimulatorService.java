@@ -7,6 +7,8 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Service
 public class SimulatorService {
@@ -56,6 +58,22 @@ public class SimulatorService {
                 } else {
                     throw new RuntimeException("Edges are incorrect, source and target types are incompatible");
                 }
+            }
+        }
+        startSimulation();
+    }
+
+    public void startSimulation() {
+        ExecutorService executor = Executors.newFixedThreadPool(10);  // Pool with 10 threads
+
+        List<Map<String, Object>> nodes = (List<Map<String, Object>>) components.get("nodes");
+        for (Map<String, Object> node : nodes) {
+            String type = (String) node.get("type");
+            if ("machine".equals(type)) {
+                String id = (String) node.get("id");
+                Machine machine = (Machine) idToNode.get(id);
+                machine.setExecutor(executor);
+                executor.submit(machine);
             }
         }
     }

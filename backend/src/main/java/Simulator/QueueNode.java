@@ -1,16 +1,22 @@
 package Simulator;
 
+import Simulator.Observer.Observer;
+import Simulator.Observer.Subject;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-public class QueueNode {
+public class QueueNode implements Subject {
     private String id;
     private String type;
     private Position position;
     private Data data;
     private BlockingQueue<String> blockedQueue;
+
+    private List<Observer> observers;
 
     public QueueNode(Map<String, Object> node) {
         this.id = (String) node.get("id");
@@ -22,12 +28,14 @@ public class QueueNode {
         Map<String, Object> dataMap = (Map<String, Object>) node.get("data");
         this.data = new Data(dataMap);
 
-        this.blockedQueue = new LinkedBlockingQueue<>();
+        setBlockedQueue();
+
     }
 
-    public void setBlockedQueue(BlockingQueue<String> blockedQueue) {
-        this.blockedQueue = (BlockingQueue<String>) this.data.getColors();
+    public void setBlockedQueue() {
+        this.blockedQueue = new LinkedBlockingQueue<>(this.data.getColors());
     }
+
 
     public int getSize(){
         return this.blockedQueue.size();
@@ -72,6 +80,7 @@ public class QueueNode {
     public void addToBlockedQueue(String element) {
         try {
             blockedQueue.put(element);
+            notifyObservers();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             System.out.println("Interrupted while adding to the blocked queue: " + e.getMessage());
@@ -80,11 +89,33 @@ public class QueueNode {
 
     public String removeFromBlockedQueue() {
         try {
-            return blockedQueue.take();
+            String product = blockedQueue.take();
+            notifyObservers();
+            return product;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             System.out.println("Interrupted while removing from the blocked queue: " + e.getMessage());
             return null;
+        }
+    }
+
+    @Override
+    public void addObserver(Observer observer) {
+        if (observers == null){
+            observers = new ArrayList<>();
+        }
+        observers.add(observer);
+    }
+
+    @Override
+    public void removeObserver(Observer observer) {
+        observers.remove(observer);
+    }
+
+    @Override
+    public void notifyObservers() {
+        for (Observer observer : observers){
+            observer.update();
         }
     }
 

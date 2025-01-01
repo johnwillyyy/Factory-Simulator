@@ -74,7 +74,7 @@ const FlowComponent = () => {
       id: `Q ${qCounter}`,
       type: 'queue',
       position: { x: Math.random() * window.innerWidth / 3, y: Math.random() * window.innerHeight / 3 },
-      data: { label: 'New Queue Node', colors:["#ffffff","#ffffff","#ffffff","#ffffff","#ffffff","#ffffff","#ffffff","#ffffff","#ffffff"  ] }
+      data: { label: 'New Queue Node', colors:["blue","blue","blue","blue","blue","blue","blue","blue","blue"  ] }
     };
     setQCounter((count) => count+1);
     setNodes((ns) => [...ns, newNode]);

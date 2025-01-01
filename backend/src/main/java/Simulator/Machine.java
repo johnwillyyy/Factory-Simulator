@@ -1,11 +1,16 @@
 package Simulator;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import Simulator.Observer.Observer;
 
-public class Machine implements Runnable {
+import java.util.*;
+import java.util.concurrent.ExecutorService;
+
+public class Machine implements Runnable, Observer {
+    ExecutorService executor;
+    private boolean isProcessing = false;
+    private boolean isUpdateMissed = false;
+
+
     private String id;
     private String type;
     private Position position;
@@ -18,12 +23,19 @@ public class Machine implements Runnable {
     List<QueueNode> nextQueueNodes;    // List to store next queues
     List<QueueNode> prevQueueNodes;    // List to store previous queues
 
+
+    public void setExecutor(ExecutorService executor) {
+        this.executor = executor;
+    }
+
     public void addNextQueues(QueueNode queueNode){
         nextQueueNodes.add(queueNode);
+        queueNode.addObserver(this);
     }
 
     public void addPrevQueues(QueueNode queueNode){
         prevQueueNodes.add(queueNode);
+        queueNode.addObserver(this);
     }
 
     private void setNextQueue(){
@@ -57,14 +69,51 @@ public class Machine implements Runnable {
 
     @Override
     public void run() {
-        System.out.println(this.getData().getLabel() + " is running.");
         try {
-            Thread.sleep(this.getData().getTime() * 1000L);
+            if (Objects.equals(getStyle().getBackground(), "#FFFFFF")) {
+                isProcessing = true;
+                setPrevQueue();
+                String productColour = prevChosenQueue.removeFromBlockedQueue();
+                System.out.println(prevChosenQueue.getId()+" Prev Size: "+prevChosenQueue.getSize());
+
+
+                if (productColour != null) {
+                    System.out.println(id+"working!");
+                    this.getStyle().setBackground(productColour);
+                    prevChosenQueue.notifyObservers(); //notify after background change
+                    Thread.sleep(this.getData().getTime() * 1000L);
+                    this.getStyle().setBackground("#FFFFFF");
+                    setNextQueue();
+                    nextChosenQueue.addToBlockedQueue(productColour);
+                    System.out.println(id+"finished!");
+                    System.out.println(nextChosenQueue.getId()+" Next Size: "+nextChosenQueue.getSize());
+                } else {
+                    System.out.println("No products in queue for machine " + getId());
+                }
+            }
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            System.out.println("Machine " + id + " interrupted.");
+            Thread.currentThread().interrupt();  // Restore the interrupt flag
+            System.out.println("Machine " + getId() + " interrupted during processing.");
         }
-        System.out.println(this.getData().getLabel() + " completed.");
+
+        isProcessing = false;
+
+        if (isUpdateMissed){
+            update();
+        }
+
+    }
+
+
+    @Override
+    public void update() {
+        if (!isProcessing) {
+            executor.submit(this);
+            isUpdateMissed = false;
+        }else{
+            isUpdateMissed = true;
+        }
+        // send webSocket
     }
 
     // Position Class

@@ -28,9 +28,9 @@ public class WebSocketHandler extends TextWebSocketHandler {
         Map<String, Object> messageMap = objectMapper.readValue(incomingMessage, Map.class);
         try {
             simulatorService.setComponents(messageMap);
+            session.sendMessage(new TextMessage("Simulation started!"));
         }catch (RuntimeException e){
             session.sendMessage(new TextMessage("Simulation failed!"));
         }
-        session.sendMessage(new TextMessage("Simulation started!"));
     }
 }
