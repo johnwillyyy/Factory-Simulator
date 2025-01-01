@@ -1,6 +1,7 @@
 package Simulator;
 
 import Simulator.Observer.Observer;
+import Simulator.Service.WebSocketService;
 
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -9,6 +10,8 @@ public class Machine implements Runnable, Observer {
     ExecutorService executor;
     private boolean isProcessing = false;
     private boolean isUpdateMissed = false;
+    private final WebSocketService webSocketService;
+
 
 
     private String id;
@@ -50,7 +53,8 @@ public class Machine implements Runnable, Observer {
                 .orElse(null);
     }
 
-    public Machine(Map<String, Object> node) {
+    public Machine(Map<String, Object> node,WebSocketService webSocketService) {
+        this.webSocketService = webSocketService;
         nextQueueNodes = new ArrayList<>(); // Initialize as a List
         prevQueueNodes = new ArrayList<>(); // Initialize as a List
 
@@ -75,10 +79,9 @@ public class Machine implements Runnable, Observer {
                 setPrevQueue();
                 String productColour = prevChosenQueue.removeFromBlockedQueue();
                 System.out.println(prevChosenQueue.getId()+" Prev Size: "+prevChosenQueue.getSize());
-
-
                 if (productColour != null) {
                     System.out.println(id+"working!");
+                    webSocketService.sendJsonMessage(productColour);
                     this.getStyle().setBackground(productColour);
                     prevChosenQueue.notifyObservers(); //notify after background change
                     Thread.sleep(this.getData().getTime() * 1000L);
@@ -86,6 +89,7 @@ public class Machine implements Runnable, Observer {
                     setNextQueue();
                     nextChosenQueue.addToBlockedQueue(productColour);
                     System.out.println(id+"finished!");
+                    webSocketService.sendJsonMessage(productColour+"is finsh");
                     System.out.println(nextChosenQueue.getId()+" Next Size: "+nextChosenQueue.getSize());
                 } else {
                     System.out.println("No products in queue for machine " + getId());

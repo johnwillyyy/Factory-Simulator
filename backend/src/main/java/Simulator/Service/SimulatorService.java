@@ -3,6 +3,7 @@ package Simulator.Service;
 import Simulator.Machine;
 import Simulator.QueueNode;
 import org.springframework.stereotype.Service;
+import org.springframework.web.socket.WebSocketSession;
 
 import java.util.HashMap;
 import java.util.List;
@@ -12,10 +13,12 @@ import java.util.concurrent.Executors;
 
 @Service
 public class SimulatorService {
+    private WebSocketService webSocketService = new WebSocketService();
     private Map<String, Object> components;
     private final Map<String, Object> idToNode = new HashMap<>(); // Store nodes by their ID
 
-    public void setComponents(Map<String, Object> components) {
+    public void setComponents(Map<String, Object> components, WebSocketSession session) {
+        this.webSocketService.setSession(session);
         this.components = components;
         createComponents();
     }
@@ -30,7 +33,7 @@ public class SimulatorService {
                 String type = (String) node.get("type");
 
                 if ("machine".equals(type)) {
-                    Machine machine = new Machine(node);
+                    Machine machine = new Machine(node,webSocketService);
                     idToNode.put(node.get("id").toString(), machine);  // Add to idToNode map
 
                 } else if ("queue".equals(type)) {
@@ -74,6 +77,7 @@ public class SimulatorService {
                 Machine machine = (Machine) idToNode.get(id);
                 machine.setExecutor(executor);
                 executor.submit(machine);
+
             }
         }
     }
