@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class QueueNode implements Subject {
@@ -19,8 +20,22 @@ public class QueueNode implements Subject {
     private BlockingQueue<String> blockedQueue;
     private final WebSocketService webSocketService;
     private  WebSocketData webSocketData;
+    private volatile boolean paused = false;
+    private final Object lock = new Object();
+    ExecutorService executor;
+
 
     private List<Observer> observers;
+
+    public void setExecutor(ExecutorService executor) {
+        this.executor = executor;
+
+        if (data.isInput) {
+            Thread queueThread = getAddToQueueThread();
+            queueThread.start();
+        }
+    }
+
 
     public QueueNode(Map<String, Object> node, WebSocketService webSocketService) {
         this.webSocketService = webSocketService;
@@ -38,23 +53,21 @@ public class QueueNode implements Subject {
 
         setBlockedQueue();
 
-        if (data.isInput) {
-            Thread queueThread = getAddToQueueThread();
-            queueThread.start();
-        }
     }
 
     private Thread getAddToQueueThread() {
         Random random = new Random();
         Thread queueThread = new Thread(() -> {
-            while (true) {
+            while (!executor.isShutdown()) {
                 try {
+                    checkPause();
                     int randomInt = 1000 + random.nextInt(9000); // 0 to 16777215
                     String randomColour = generateRandomColour();
+                    checkPause();
                     Thread.sleep(randomInt);  // from 1 sec to 10 sec
+                    checkPause();
                     webSocketData.setWebSocketData("None","None",this.getId(),randomColour);
                     webSocketService.sendJsonMessage(webSocketData);
-                    Thread.sleep(500);
                     addToBlockedQueue(randomColour);
                     System.out.println(randomColour + "added by inputQueueThread:" + this.getId());
                 } catch (InterruptedException e) {
@@ -64,6 +77,34 @@ public class QueueNode implements Subject {
             }
         });
         return queueThread;
+    }
+
+    private void checkPause() {
+        synchronized (lock) {
+            while (paused) {
+                try {
+                    lock.wait();  // Wait if paused
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    System.out.println("Thread interrupted while waiting to resume.");
+                }
+            }
+        }
+    }
+
+    // Pause the thread
+    public void pauseThread() {
+        synchronized (lock) {
+            paused = true;  // Set the paused flag
+        }
+    }
+
+    // Resume the thread
+    public void resumeThread() {
+        synchronized (lock) {
+            paused = false;  // Clear the paused flag
+            lock.notify();   // Notify the waiting thread to resume
+        }
     }
 
     private String generateRandomColour() {

@@ -12,6 +12,8 @@ public class Machine implements Runnable, Observer {
     private boolean isUpdateMissed = false;
     private final WebSocketService webSocketService;
     private  WebSocketData webSocketData;
+    private volatile boolean paused = false;
+    private final Object lock = new Object();
 
 
 
@@ -82,54 +84,104 @@ public class Machine implements Runnable, Observer {
                 isProcessing = true;
                 setPrevQueue();
                 String productColour = prevChosenQueue.removeFromBlockedQueue();
-                System.out.println(prevChosenQueue.getId()+" Prev Size: "+prevChosenQueue.getSize());
+                System.out.println(prevChosenQueue.getId() + " Prev Size: " + prevChosenQueue.getSize());
+
                 if (productColour != null) {
-                    System.out.println(id+"working!");
-                    webSocketData.setWebSocketData(id,prevChosenQueue.getId(),"None",productColour);
-                    System.out.println(id+"working! with"+productColour);
+                    System.out.println(id + " working!");
+                    webSocketData.setWebSocketData(id, prevChosenQueue.getId(), "None", productColour);
+                    System.out.println(id + " working! with " + productColour);
                     webSocketService.sendJsonMessage(webSocketData);
                     this.getStyle().setBackground(productColour);
                     prevChosenQueue.notifyObservers(); //notify after background change
-                    Thread.sleep(this.getData().getTime() * 1000L);
+
+
+                    sleepWithPause(this.getData().getTime() * 1000L);
+
                     this.getStyle().setBackground("#FFFFFF");
                     setNextQueue();
                     nextChosenQueue.addToBlockedQueue(productColour);
-                    System.out.println(id+"finished!");
-                    System.out.println(nextChosenQueue.getId()+" Next Size: "+nextChosenQueue.getSize());
-                    webSocketData.setWebSocketData("None","None",nextChosenQueue.getId(),productColour);
+                    System.out.println(id + " finished!");
+                    System.out.println(nextChosenQueue.getId() + " Next Size: " + nextChosenQueue.getSize());
+                    webSocketData.setWebSocketData("None", "None", nextChosenQueue.getId(), productColour);
                     webSocketService.sendJsonMessage(webSocketData);
-                    webSocketData.setWebSocketData(id,"None","None","#FFFFFF");
+                    webSocketData.setWebSocketData(id, "None", "None", "#FFFFFF");
                     webSocketService.sendJsonMessage(webSocketData);
-                    Thread.sleep(1000);
+
+                    sleepWithPause(1000);
 
                 } else {
                     System.out.println("No products in queue for machine " + getId());
                 }
             }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();  // Restore the interrupt flag
+        } catch (Exception e) {
             System.out.println("Machine " + getId() + " interrupted during processing.");
+        } finally {
+            isProcessing = false;
+            // If an update was missed while processing, resubmit the task
+            if (isUpdateMissed) {
+                isUpdateMissed = false;
+                executor.submit(this);
+            }
         }
+    }
 
-        isProcessing = false;
+    private void sleepWithPause(long totalSleepTimeMs) {
+        long remainingTime = totalSleepTimeMs;
+        long sleepInterval = 100; // Sleep in 100 ms chunks
 
-        if (isUpdateMissed){
-            isUpdateMissed = false;
-            run();
+        while (remainingTime > 0) {
+            checkPause();
+            try {
+                Thread.sleep(Math.min(sleepInterval, remainingTime));
+                remainingTime -= sleepInterval;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                System.out.println("Interrupted during sleep.");
+                break;
+            }
         }
+    }
 
+    // Method to check if the thread is paused
+    private void checkPause() {
+        synchronized (lock) {
+            while (paused) {
+                try {
+                    lock.wait();  // Wait if paused
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    System.out.println("Thread interrupted while waiting to resume.");
+                }
+            }
+        }
+    }
+
+    // Pause the thread
+    public void pauseThread() {
+        synchronized (lock) {
+            paused = true;  // Set the paused flag
+        }
+    }
+
+    // Resume the thread
+    public void resumeThread() {
+        synchronized (lock) {
+            paused = false;  // Clear the paused flag
+            lock.notify();   // Notify the waiting thread to resume
+        }
     }
 
 
     @Override
     public void update() {
-        if (!isProcessing) {
-            executor.submit(this);
-            isUpdateMissed = false;
-        }else{
-            isUpdateMissed = true;
+        if (!executor.isShutdown()) {
+            if (!isProcessing) {
+                executor.submit(this);
+                isUpdateMissed = false;
+            } else {
+                isUpdateMissed = true;
+            }
         }
-        // send webSocket
     }
 
     // Position Class

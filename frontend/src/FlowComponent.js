@@ -24,6 +24,8 @@ const FlowComponent = () => {
   const [webSocket, setWebSocket] = useState(null);
   const [isSocketOpen, setIsSocketOpen] = useState(false);
   const [simulating, setSimulating] = useState(false);
+  const [paused, setPaused] = useState(false);
+
 
 
   useEffect(() => {
@@ -173,6 +175,16 @@ const FlowComponent = () => {
   const deleteSimulation = () => {
     setNodes([]);
     setEdges([]);
+    if (webSocket && webSocket.readyState === WebSocket.OPEN) {
+      // You can send a message or just stop any ongoing updates from the WebSocket here
+      webSocket.send(JSON.stringify({ action: 'delete' }));
+      console.log('Simulation deleted');
+      setPaused(false);
+      setSimulating(false);
+
+    } else {
+      console.error('WebSocket is not open. Cannot send data.');
+    }
   };
 
   const clearSimulation = () => {
@@ -236,6 +248,7 @@ const FlowComponent = () => {
       webSocket.send(JSON.stringify(simulationData));
       console.log('Sent simulation data:', simulationData);
       setSimulating(true); // Mark the simulation as paused
+      setPaused(false);
     } else {
       console.error('WebSocket is not open. Cannot send data.');
     }
@@ -246,7 +259,7 @@ const FlowComponent = () => {
       // You can send a message or just stop any ongoing updates from the WebSocket here
       webSocket.send(JSON.stringify({ action: 'pause' }));
       console.log('Simulation paused');
-      setSimulating(false); // Mark the simulation as paused
+      setPaused(true);
     } else {
       console.error('WebSocket is not open. Cannot send data.');
     }
@@ -268,7 +281,7 @@ const FlowComponent = () => {
 
   return (
     <ReactFlowProvider>
-      <div style={{ height: 600 }}>
+      <div style={{ height: 770 }}>
         <ReactFlow
           nodes={nodes.map((node) =>
             node.type === 'queue'
@@ -305,13 +318,13 @@ const FlowComponent = () => {
           >
             Add Input Queue
           </button>
-          <button className={simulating ? styles.disabledButton : styles.enabledButton} onClick={startNewSimulation} disabled={simulating}>
+          <button className={simulating ? (paused? styles.enabledButton : styles.disabledButton) : styles.enabledButton} onClick={startNewSimulation} disabled={!((simulating && paused) || !simulating)}>
             Start Simulation
           </button>
           <button className={simulating ? styles.disabledButton : styles.enabledButton} onClick={clearSimulation} disabled={simulating}>
             Clear Simulation
           </button>
-          <button className={simulating ? styles.disabledButton : styles.enabledButton} onClick={deleteSimulation} disabled={simulating}>
+          <button className={styles.enabledButton} onClick={deleteSimulation}>
             Delete Simulation
           </button>
           <button className={styles.enabledButton} >

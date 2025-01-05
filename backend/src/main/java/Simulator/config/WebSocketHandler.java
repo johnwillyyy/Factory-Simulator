@@ -25,13 +25,15 @@ public class WebSocketHandler extends TextWebSocketHandler {
         String incomingMessage = message.getPayload();
         System.out.println("Received message: " + incomingMessage);
 
-        if (incomingMessage.equals("stop")){
-            simulatorService.stopSimulation();
-        }
-
         Map<String, Object> messageMap = objectMapper.readValue(incomingMessage, Map.class);
         try {
+            if ("pause".equals(messageMap.getOrDefault("action", ""))){
+                simulatorService.stopSimulation();
+            } else if ("delete".equals(messageMap.getOrDefault("action", ""))) {
+                simulatorService.deleteSimulation();
+            } else{
             simulatorService.setComponents(messageMap,session);
+            }
         }catch (RuntimeException e){
             session.sendMessage(new TextMessage("Simulation failed!"));
         }
