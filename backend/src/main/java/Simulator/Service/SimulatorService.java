@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class SimulatorService {
@@ -17,9 +18,18 @@ public class SimulatorService {
     private Map<String, Object> components;
     private final Map<String, Object> idToNode = new HashMap<>(); // Store nodes by their ID
     ExecutorService executor = Executors.newFixedThreadPool(10);  // Pool with 10 threads
+    private volatile boolean paused = false;
 
 
     public void setComponents(Map<String, Object> components, WebSocketSession session) {
+        if (executor.isShutdown()){
+            executor = Executors.newFixedThreadPool(10);
+        }
+
+        if (paused){
+            resumeSimulation();
+            return;
+        }
         this.webSocketService.setSession(session);
         this.components = components;
         createComponents();
@@ -79,11 +89,64 @@ public class SimulatorService {
                 machine.setExecutor(executor);
                 executor.submit(machine);
 
+            }else if ("queue".equals(type)) {
+                String id = (String) node.get("id");
+                QueueNode queueNode = (QueueNode) idToNode.get(id);
+                queueNode.setExecutor(executor);
             }
         }
     }
 
     public void stopSimulation() {
-        executor.shutdown();
+        List<Map<String, Object>> nodes = (List<Map<String, Object>>) components.get("nodes");
+
+        for (Map<String, Object> node : nodes) {
+            String type = (String) node.get("type");
+            if ("machine".equals(type)) {
+                String id = (String) node.get("id");
+                Machine machine = (Machine) idToNode.get(id);
+                machine.pauseThread();
+            }
+            else if ("queue".equals(type)) {
+                String id = (String) node.get("id");
+                QueueNode queueNode = (QueueNode) idToNode.get(id);
+                queueNode.pauseThread();
+            }
+        }
+        paused = true;
     }
+
+    public void resumeSimulation(){
+        List<Map<String, Object>> nodes = (List<Map<String, Object>>) components.get("nodes");
+
+        for (Map<String, Object> node : nodes) {
+            String type = (String) node.get("type");
+            if ("machine".equals(type)) {
+                String id = (String) node.get("id");
+                Machine machine = (Machine) idToNode.get(id);
+                machine.resumeThread();
+            }
+            else if ("queue".equals(type)) {
+                String id = (String) node.get("id");
+                QueueNode queueNode = (QueueNode) idToNode.get(id);
+                queueNode.resumeThread();
+            }
+        }
+        paused = false;
+    }
+
+    public void deleteSimulation() {
+        executor.shutdown();  // Graceful shutdown
+
+        try {
+            if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+                executor.shutdownNow();  // Force shutdown if not finished
+            }
+        } catch (InterruptedException e) {
+            executor.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+        paused = false;
+    }
+
 }
