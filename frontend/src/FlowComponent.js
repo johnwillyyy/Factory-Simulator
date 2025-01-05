@@ -122,10 +122,23 @@ const FlowComponent = () => {
       id: `Q ${qCounter}`,
       type: 'queue',
       position: { x: Math.random() * window.innerWidth / 3, y: Math.random() * window.innerHeight / 3 },
-      data: { label: 'New Queue Node', colors:[] }
+      data: { label: 'New Queue Node', colors:[], isInput: false }
     };
     setQCounter((count) => count+1);
     setNodes((ns) => [...ns, newNode]);
+  };
+
+  const addInputQueue = () => {
+    const newNode = {
+      id: `Q ${qCounter}`,
+      type: 'queue',
+      position: { x: Math.random() * window.innerWidth / 3, y: Math.random() * window.innerHeight / 3 },
+      data: { label: 'New Queue Node', colors:[], isInput: true }
+    };
+    setQCounter((count) => count+1);
+    setNodes((ns) => [...ns, newNode]);
+    console.log(nodes)
+
   };
 
   const onConnect = useCallback((params) => {
@@ -225,10 +238,13 @@ const FlowComponent = () => {
         </ReactFlow>
         <div className={styles.container}>
           <button className={styles.button} onClick={addMachineNode}>
-            Add Machine Node
+            Add Machine
           </button>
           <button className={styles.button} onClick={addQueueNode}>
-            Add Queue Node
+            Add Queue 
+          </button>
+          <button className={styles.button} onClick={addInputQueue}>
+            Add Input Queue
           </button>
           <button className={styles.button}onClick={startNewSimulation}>
             Start New Simulation

@@ -23,11 +23,13 @@ const Queue = ({ data, id }) => {
     </div>
       <Handle type="target" position={Position.Right} className={styles.handle} />
       <p>{data.colors.length} product(s)</p>
-      <button 
+      
+      {data.isInput && (<button 
         onClick={() => data.onAddColor(id)} 
         className={styles.addButton}>
         <FaPlus />
-      </button>
+      </button>)}
+
     </div>
   );
 };
