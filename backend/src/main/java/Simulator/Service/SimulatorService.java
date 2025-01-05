@@ -16,6 +16,8 @@ public class SimulatorService {
     private WebSocketService webSocketService = new WebSocketService();
     private Map<String, Object> components;
     private final Map<String, Object> idToNode = new HashMap<>(); // Store nodes by their ID
+    ExecutorService executor = Executors.newFixedThreadPool(10);  // Pool with 10 threads
+
 
     public void setComponents(Map<String, Object> components, WebSocketSession session) {
         this.webSocketService.setSession(session);
@@ -37,7 +39,7 @@ public class SimulatorService {
                     idToNode.put(node.get("id").toString(), machine);  // Add to idToNode map
 
                 } else if ("queue".equals(type)) {
-                    QueueNode queueNode = new QueueNode(node);
+                    QueueNode queueNode = new QueueNode(node,webSocketService);
                     idToNode.put(node.get("id").toString(), queueNode);  // Add to idToNode map
                 }
             }
@@ -67,7 +69,6 @@ public class SimulatorService {
     }
 
     public void startSimulation() {
-        ExecutorService executor = Executors.newFixedThreadPool(10);  // Pool with 10 threads
 
         List<Map<String, Object>> nodes = (List<Map<String, Object>>) components.get("nodes");
         for (Map<String, Object> node : nodes) {
@@ -80,5 +81,9 @@ public class SimulatorService {
 
             }
         }
+    }
+
+    public void stopSimulation() {
+        executor.shutdown();
     }
 }

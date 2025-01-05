@@ -25,6 +25,10 @@ public class WebSocketHandler extends TextWebSocketHandler {
         String incomingMessage = message.getPayload();
         System.out.println("Received message: " + incomingMessage);
 
+        if (incomingMessage.equals("stop")){
+            simulatorService.stopSimulation();
+        }
+
         Map<String, Object> messageMap = objectMapper.readValue(incomingMessage, Map.class);
         try {
             simulatorService.setComponents(messageMap,session);

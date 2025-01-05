@@ -38,11 +38,7 @@ const FlowComponent = () => {
         console.log("Nodes",nodes);
         setNodes((prevNodes) =>
           prevNodes.map((node) => {
-            if (
-              node.id === data.machineId ||
-              node.id === data.prevQueueId ||
-              node.id === data.nextQueueId
-            ) {
+            if (node.id === data.machineId) {
               return {
                 ...node,
                 style: {
@@ -51,6 +47,27 @@ const FlowComponent = () => {
                 },
               };
             }
+            
+            if (node.id === data.prevQueueId) {
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  colors: removeFirstAppearance(node.data.colors, data.color)
+                }
+              };
+            }
+            
+            if (node.id === data.nextQueueId) {
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  colors: [...node.data.colors, data.color] // Append colour to the end
+                }
+              };
+            }
+            
             return node;
           })
         );
@@ -71,6 +88,13 @@ const FlowComponent = () => {
   }, []);
   
   
+  function removeFirstAppearance(colors, colorToRemove) {
+    const index = colors.indexOf(colorToRemove);
+    if (index !== -1) {
+      return [...colors.slice(0, index), ...colors.slice(index + 1)];
+    }
+    return colors;
+  }
 
 
   const addRandomColor = (nodeId) => {
@@ -106,7 +130,7 @@ const FlowComponent = () => {
       id: `M ${mCounter}`,
       type: 'machine',
       position: { x: Math.random() * window.innerWidth / 3, y: Math.random() * window.innerHeight / 3 },
-      data: { label: 'New Machine Node' , time: 2},
+      data: { label: 'New Machine Node' , time: 5},
       style: { 
         background: "#FFFFFF",
         border: "3px solid gray" , 

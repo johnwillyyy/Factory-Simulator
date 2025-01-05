@@ -2,10 +2,12 @@ package Simulator;
 
 import Simulator.Observer.Observer;
 import Simulator.Observer.Subject;
+import Simulator.Service.WebSocketService;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -15,12 +17,18 @@ public class QueueNode implements Subject {
     private Position position;
     private Data data;
     private BlockingQueue<String> blockedQueue;
+    private final WebSocketService webSocketService;
+    private  WebSocketData webSocketData;
 
     private List<Observer> observers;
 
-    public QueueNode(Map<String, Object> node) {
+    public QueueNode(Map<String, Object> node, WebSocketService webSocketService) {
+        this.webSocketService = webSocketService;
+        this.webSocketData = new WebSocketData();
+
         this.id = (String) node.get("id");
         this.type = (String) node.get("type");
+
 
         Map<String, Object> posMap = (Map<String, Object>) node.get("position");
         this.position = new Position(posMap);
@@ -30,6 +38,39 @@ public class QueueNode implements Subject {
 
         setBlockedQueue();
 
+        if (data.isInput) {
+            Thread queueThread = getAddToQueueThread();
+            queueThread.start();
+        }
+    }
+
+    private Thread getAddToQueueThread() {
+        Random random = new Random();
+        Thread queueThread = new Thread(() -> {
+            while (true) {
+                try {
+                    int randomInt = 1000 + random.nextInt(9000); // 0 to 16777215
+                    String randomColour = generateRandomColour();
+                    Thread.sleep(randomInt);  // from 1 sec to 10 sec
+                    webSocketData.setWebSocketData("None","None",this.getId(),randomColour);
+                    webSocketService.sendJsonMessage(webSocketData);
+                    Thread.sleep(500);
+                    addToBlockedQueue(randomColour);
+                    System.out.println(randomColour + "added by inputQueueThread:" + this.getId());
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    e.printStackTrace();
+                }
+            }
+        });
+        return queueThread;
+    }
+
+    private String generateRandomColour() {
+        Random random = new Random();
+        int randomInt = random.nextInt(16777215 + 1); // 0 to 16777215
+        String hexColour = Integer.toHexString(randomInt).toUpperCase();
+        return "#" + String.format("%6s", hexColour).replace(' ', '0');
     }
 
     public void setBlockedQueue() {
@@ -160,11 +201,14 @@ public class QueueNode implements Subject {
     public static class Data {
         private String label;
         private List<String> colors;
+        private boolean isInput;
+
 
         public Data(Map<String, Object> dataMap) {
             if (dataMap != null) {
                 this.label = (String) dataMap.getOrDefault("label", "Default Queue");
                 this.colors = (List<String>) dataMap.getOrDefault("colors", List.of());
+                this.isInput = Boolean.parseBoolean(dataMap.getOrDefault("isInput", "false").toString());
             }
         }
 

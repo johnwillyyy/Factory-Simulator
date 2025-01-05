@@ -11,6 +11,8 @@ public class Machine implements Runnable, Observer {
     private boolean isProcessing = false;
     private boolean isUpdateMissed = false;
     private final WebSocketService webSocketService;
+    private  WebSocketData webSocketData;
+
 
 
 
@@ -54,7 +56,9 @@ public class Machine implements Runnable, Observer {
     }
 
     public Machine(Map<String, Object> node,WebSocketService webSocketService) {
+
         this.webSocketService = webSocketService;
+        this.webSocketData = new WebSocketData();
         nextQueueNodes = new ArrayList<>(); // Initialize as a List
         prevQueueNodes = new ArrayList<>(); // Initialize as a List
 
@@ -81,9 +85,9 @@ public class Machine implements Runnable, Observer {
                 System.out.println(prevChosenQueue.getId()+" Prev Size: "+prevChosenQueue.getSize());
                 if (productColour != null) {
                     System.out.println(id+"working!");
-                    MachineData First = new MachineData(id,prevChosenQueue.getId(),"None",productColour);
+                    webSocketData.setWebSocketData(id,prevChosenQueue.getId(),"None",productColour);
                     System.out.println(id+"working! with"+productColour);
-                    webSocketService.sendJsonMessage(First);
+                    webSocketService.sendJsonMessage(webSocketData);
                     this.getStyle().setBackground(productColour);
                     prevChosenQueue.notifyObservers(); //notify after background change
                     Thread.sleep(this.getData().getTime() * 1000L);
@@ -92,8 +96,12 @@ public class Machine implements Runnable, Observer {
                     nextChosenQueue.addToBlockedQueue(productColour);
                     System.out.println(id+"finished!");
                     System.out.println(nextChosenQueue.getId()+" Next Size: "+nextChosenQueue.getSize());
-                    MachineData Second = new MachineData(id,prevChosenQueue.getId(),nextChosenQueue.getId(),productColour);
-                    webSocketService.sendJsonMessage(Second);
+                    webSocketData.setWebSocketData("None","None",nextChosenQueue.getId(),productColour);
+                    webSocketService.sendJsonMessage(webSocketData);
+                    webSocketData.setWebSocketData(id,"None","None","#FFFFFF");
+                    webSocketService.sendJsonMessage(webSocketData);
+                    Thread.sleep(1000);
+
                 } else {
                     System.out.println("No products in queue for machine " + getId());
                 }
@@ -106,7 +114,8 @@ public class Machine implements Runnable, Observer {
         isProcessing = false;
 
         if (isUpdateMissed){
-            update();
+            isUpdateMissed = false;
+            run();
         }
 
     }
