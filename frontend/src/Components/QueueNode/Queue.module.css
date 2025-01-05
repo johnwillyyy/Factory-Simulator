@@ -1,51 +1,58 @@
-
 .scrollContainer {
   padding: 5px;
   background: #000000;
   border-radius: 25px;
-  width: 100px;
-  height: 40px;
+  width: 80px;  /* Adjust the width as needed */
+  height: 25px; /* Adjust the height as needed */
   display: flex;
-  align-items: center; /* Centers items vertically */
-  justify-content: center; /* Centers items horizontally */
-  flex-wrap: nowrap; /* Prevents the circles from wrapping */
-  overflow-x: auto; /* Enables horizontal scrolling */
-  overflow-y: hidden; /* Disables vertical scrolling */
-  white-space: nowrap; /* Keeps elements in a single line */
-  scrollbar-width: thin;
-  position: relative; /* Added to position the button correctly */
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+  overflow-x: scroll;  /* Enable horizontal scrolling */
+  overflow-y: hidden;  /* Disable vertical scrolling */
+  white-space: nowrap;
+  position: relative;
 }
 
-.scrollContainer::-webkit-scrollbar-track {
-  background: #000000; /* Color of the track */
-  border-radius: 10px; /* Rounded corners of the track */
+/* Invisible scrollbar with the height covering the entire container */
+.scrollContainer::-webkit-scrollbar {
+  height: 100%;  /* Set the height of the scrollbar (horizontal) */
+  background: transparent;
+  position: absolute;
+
 }
 
 .scrollContainer::-webkit-scrollbar-thumb {
-  background-color: darkgray !important;
-  border-radius: 10px !important;
-  border: 3px solid white !important;
+  background: transparent;  /* Make the thumb invisible */
+  border-radius: 10px;
 }
 
-.scrollContainer::-webkit-scrollbar {
-  width: 12px; /* Width of the scrollbar */
-  height: 12px; /* Height of the scrollbar for horizontal scroll */
+.scrollContainer::-webkit-scrollbar-track {
+  background: transparent;  /* Hide the track background */
 }
 
-.scrollContainer::-webkit-scrollbar-button {
-  display: block;
-  height: 12px; /* Height of the button */
-  background-color: #ccc; /* Color of the button */
-}
 
-.circle {
-  flex-shrink: 0; /* Prevents the circles from shrinking */
-  width: 30px; /* Fixed width */
-  height: 30px; /* Fixed height */
-  border-radius: 50%; /* Makes it a circle */
-  margin: 0 5px; /* Adds spacing between circles */
+.product {
+  flex-shrink: 0; /* Prevents the items from shrinking */
+  margin: 0 2px; /* Adds spacing between items */
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3), /* Outer shadow */
-  inset 0 -2px 5px rgba(0, 0, 0, 0.5); /* Inner shadow */
+    inset 0 -2px 5px rgba(0, 0, 0, 0.5); /* Inner shadow */
+}
+
+.productCount {
+  font-family: 'Arial', sans-serif; /* Elegant, clean font */
+  font-size: 8px; /* Smaller font size */
+  font-weight: 300; /* Lighter weight for elegance */
+  color: #666666; /* Subtle, soft text color */
+  margin: 0; /* Remove default margin */
+  padding: 0; /* Optional: to remove any padding */
+  letter-spacing: 0.5px; /* Adds a little spacing for a clean look */
+}
+
+.handle {
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgb(138, 138, 138);
 }
 
 .addButton {
@@ -59,25 +66,20 @@
   color: black;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   transition: transform 0.2s;
-  width: 30px; /* Match the circle size */
-  height: 30px; /* Match the circle size */
+  width: 10px; /* Adjusted size for better visibility */
+  height: 10px; /* Adjusted size */
   position: absolute; /* Position button within the scrollContainer */
-  
   left: 50%; /* Centers horizontally */
-  transform: translate(-50%, -50%); /* Adjusts position for perfect centering */
+  transform: translateX(-50%); /* Precisely centers horizontally */
 }
+
 
 .addButton:hover {
-  transform: scale(1.1) translate(-50%, -50%); /* Slightly enlarge on hover */
-  background-color: #808080; /* Darker green */
-}
-
-.addButton:active {
-  transform: scale(0.9) translate(-50%, -50%); /* Slightly shrink on click */
+  background-color: #808080; /* Darker gray on hover */
 }
 
 .emptyMessage {
-  font-size: 14px;
+  font-size: 10px;
   color: gray;
   text-align: center;
   margin: auto;

@@ -22,6 +22,8 @@ const FlowComponent = () => {
   const [selectedElement, setSelectedElement] = useState(null);
 
   const [webSocket, setWebSocket] = useState(null);
+  const [isSocketOpen, setIsSocketOpen] = useState(false);
+  const [simulating, setSimulating] = useState(false);
 
 
   useEffect(() => {
@@ -29,6 +31,8 @@ const FlowComponent = () => {
   
     socket.onopen = () => {
       console.log('WebSocket connected');
+      setIsSocketOpen(true); // WebSocket is open
+
     };
   
     socket.onmessage = (event) => {
@@ -62,6 +66,8 @@ const FlowComponent = () => {
   
     socket.onclose = () => {
       console.log('WebSocket closed');
+      setIsSocketOpen(false); // WebSocket is open
+
     };
   
     setWebSocket(socket);
@@ -106,10 +112,10 @@ const FlowComponent = () => {
       id: `M ${mCounter}`,
       type: 'machine',
       position: { x: Math.random() * window.innerWidth / 3, y: Math.random() * window.innerHeight / 3 },
-      data: { label: 'New Machine Node' , time: 2},
+      data: { label: 'New Machine Node' , time: Math.floor(Math.random() * (15 - 5 + 1)) + 5},
       style: { 
         background: "#FFFFFF",
-        border: "3px solid gray" , 
+        border: "2px solid gray" , 
         borderRadius: "5px", 
       }
     };
@@ -138,8 +144,26 @@ const FlowComponent = () => {
     setQCounter((count) => count+1);
     setNodes((ns) => [...ns, newNode]);
     console.log(nodes)
-
   };
+
+  const deleteSimulation = () => {
+    setNodes([]);
+    setEdges([]);
+  };
+
+  const clearSimulation = () => {
+    setNodes((prevNodes) =>
+      prevNodes.map((node) => ({
+        ...node, // Spread the existing node properties
+        data: {
+          ...node.data, // Spread the existing node's data properties
+          colors: [] // Reset colors to an empty array
+        }
+      }))
+    );
+  };
+  
+  
 
   const onConnect = useCallback((params) => {
     console.log("Current nodes:", nodes);
@@ -151,7 +175,6 @@ const FlowComponent = () => {
       console.log("Connection attempt between nodes of the same type was blocked.");
       return;
     }
-    console.log(edges)
     setEdges((eds) => [...eds, { ...params, id: `e${params.source}-${params.target}` }]);
   }, [nodes]);
   
@@ -188,6 +211,18 @@ const FlowComponent = () => {
       };
       webSocket.send(JSON.stringify(simulationData));
       console.log('Sent simulation data:', simulationData);
+      setSimulating(true); // Mark the simulation as paused
+    } else {
+      console.error('WebSocket is not open. Cannot send data.');
+    }
+  };
+
+  const pauseSimulation = () => {
+    if (webSocket && webSocket.readyState === WebSocket.OPEN) {
+      // You can send a message or just stop any ongoing updates from the WebSocket here
+      webSocket.send(JSON.stringify({ action: 'pause' }));
+      console.log('Simulation paused');
+      setSimulating(false); // Mark the simulation as paused
     } else {
       console.error('WebSocket is not open. Cannot send data.');
     }
@@ -199,9 +234,7 @@ const FlowComponent = () => {
         handleKeyDown(e);
       }
     };
-  
     window.addEventListener("keydown", handleDown); 
-  
     return () => {
       window.removeEventListener("keydown", handleDown); 
     };
@@ -211,7 +244,7 @@ const FlowComponent = () => {
 
   return (
     <ReactFlowProvider>
-      <div style={{ height: 750 }}>
+      <div style={{ height: 600 }}>
         <ReactFlow
           nodes={nodes.map((node) =>
             node.type === 'queue'
@@ -237,20 +270,31 @@ const FlowComponent = () => {
           <Background color="#aaa" gap={16} />
         </ReactFlow>
         <div className={styles.container}>
-          <button className={styles.button} onClick={addMachineNode}>
+          <button className={simulating ? styles.disabledButton : styles.enabledButton} onClick={addMachineNode} disabled={simulating}>
             Add Machine
           </button>
-          <button className={styles.button} onClick={addQueueNode}>
+          <button className={simulating ? styles.disabledButton : styles.enabledButton} onClick={addQueueNode} disabled={simulating} // Disable the button if WebSocket is open
+          >
             Add Queue 
           </button>
-          <button className={styles.button} onClick={addInputQueue}>
+          <button className={simulating ? styles.disabledButton : styles.enabledButton} onClick={addInputQueue}  disabled={simulating} // Disable the button if WebSocket is open
+          >
             Add Input Queue
           </button>
-          <button className={styles.button}onClick={startNewSimulation}>
-            Start New Simulation
+          <button className={simulating ? styles.disabledButton : styles.enabledButton} onClick={startNewSimulation} disabled={simulating}>
+            Start Simulation
           </button>
-          <button className={styles.button} >
+          <button className={simulating ? styles.disabledButton : styles.enabledButton} onClick={clearSimulation} disabled={simulating}>
+            Clear Simulation
+          </button>
+          <button className={simulating ? styles.disabledButton : styles.enabledButton} onClick={deleteSimulation} disabled={simulating}>
+            Delete Simulation
+          </button>
+          <button className={styles.enabledButton} >
             Replay Simulation
+          </button>
+          <button className={!simulating ? styles.disabledButton : styles.enabledButton} onClick={pauseSimulation} disabled={!simulating}>
+            Pause
           </button>
         </div>
       </div>
