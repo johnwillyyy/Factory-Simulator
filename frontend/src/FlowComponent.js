@@ -6,7 +6,7 @@ import ReactFlow, {
   Background,
   applyNodeChanges, applyEdgeChanges
 } from 'react-flow-renderer';
-import Queue from './Components/QueueNode/QueueNode'; // Import your custom node
+import Queue from './Components/QueueNode/QueueNode';
 import Machine from './Components/MachineNode/MachineNode';
 import styles from './FlowComponent.module.css'
 
@@ -25,24 +25,72 @@ const FlowComponent = () => {
 
 
   useEffect(() => {
-    const socket = new WebSocket('ws://localhost:8080/simulation'); // Replace with your back-end WebSocket URL
+    const socket = new WebSocket('ws://localhost:8080/simulation');
+  
     socket.onopen = () => {
       console.log('WebSocket connected');
     };
+  
     socket.onmessage = (event) => {
-      console.log('Message from server: ', event.data);
+      try {
+        const data = JSON.parse(event.data);
+        console.log('Received data:', data);
+        console.log("Nodes",nodes);
+        setNodes((prevNodes) =>
+          prevNodes.map((node) => {
+            if (
+              node.id === data.machineId ||
+              node.id === data.prevQueueId ||
+              node.id === data.nextQueueId
+            ) {
+              return {
+                ...node,
+                style: {
+                  ...node.style,
+                  backgroundColor: data.color,
+                },
+              };
+            }
+            return node;
+          })
+        );
+        
+      } catch (error) {
+        console.error('Error parsing message:', error);
+      }
     };
+  
     socket.onclose = () => {
       console.log('WebSocket closed');
     };
-
+  
     setWebSocket(socket);
-
     return () => {
-      socket.close(); 
+      socket.close();
     };
   }, []);
+  
+  
 
+
+  const addRandomColor = (nodeId) => {
+    setNodes((prevNodes) =>
+      prevNodes.map((node) =>
+        node.id === nodeId
+          ? {
+              ...node,
+              data: {
+                ...node.data,
+                colors: [
+                  ...node.data.colors,
+                  `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`,
+                ],
+              },
+            }
+          : node
+      )
+    );
+  };
 
 
 
@@ -58,7 +106,7 @@ const FlowComponent = () => {
       id: `M ${mCounter}`,
       type: 'machine',
       position: { x: Math.random() * window.innerWidth / 3, y: Math.random() * window.innerHeight / 3 },
-      data: { label: 'New Machine Node' , time: Math.floor(Math.random() * (25 - 5 + 1)) + 5},
+      data: { label: 'New Machine Node' , time: 2},
       style: { 
         background: "#FFFFFF",
         border: "3px solid gray" , 
@@ -74,7 +122,7 @@ const FlowComponent = () => {
       id: `Q ${qCounter}`,
       type: 'queue',
       position: { x: Math.random() * window.innerWidth / 3, y: Math.random() * window.innerHeight / 3 },
-      data: { label: 'New Queue Node', colors:["blue","blue","blue","blue","blue","blue","blue","blue","blue"  ] }
+      data: { label: 'New Queue Node', colors:[] }
     };
     setQCounter((count) => count+1);
     setNodes((ns) => [...ns, newNode]);
@@ -111,11 +159,11 @@ const FlowComponent = () => {
 
   const onSelectionChange = ({ nodes, edges }) => {
     if (nodes.length > 0) {
-      setSelectedElement(nodes[0]); // If a node is selected
+      setSelectedElement(nodes[0]); 
     } else if (edges.length > 0) {
-      setSelectedElement(edges[0]); // If an edge is selected
+      setSelectedElement(edges[0]); 
     } else {
-      setSelectedElement(null); // If nothing is selected
+      setSelectedElement(null); 
     }
   };
 
@@ -152,7 +200,17 @@ const FlowComponent = () => {
     <ReactFlowProvider>
       <div style={{ height: 750 }}>
         <ReactFlow
-          nodes={nodes}
+          nodes={nodes.map((node) =>
+            node.type === 'queue'
+              ? {
+                  ...node,
+                  data: {
+                    ...node.data,
+                    onAddColor: addRandomColor, 
+                  },
+                }
+              : node
+          )}
           edges={edges}
           nodeTypes={nodeTypes}
           onConnect={onConnect}

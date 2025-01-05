@@ -81,7 +81,9 @@ public class Machine implements Runnable, Observer {
                 System.out.println(prevChosenQueue.getId()+" Prev Size: "+prevChosenQueue.getSize());
                 if (productColour != null) {
                     System.out.println(id+"working!");
-                    webSocketService.sendJsonMessage(productColour);
+                    MachineData First = new MachineData(id,prevChosenQueue.getId(),"None",productColour);
+                    System.out.println(id+"working! with"+productColour);
+                    webSocketService.sendJsonMessage(First);
                     this.getStyle().setBackground(productColour);
                     prevChosenQueue.notifyObservers(); //notify after background change
                     Thread.sleep(this.getData().getTime() * 1000L);
@@ -89,8 +91,9 @@ public class Machine implements Runnable, Observer {
                     setNextQueue();
                     nextChosenQueue.addToBlockedQueue(productColour);
                     System.out.println(id+"finished!");
-                    webSocketService.sendJsonMessage(productColour+"is finsh");
                     System.out.println(nextChosenQueue.getId()+" Next Size: "+nextChosenQueue.getSize());
+                    MachineData Second = new MachineData(id,prevChosenQueue.getId(),nextChosenQueue.getId(),productColour);
+                    webSocketService.sendJsonMessage(Second);
                 } else {
                     System.out.println("No products in queue for machine " + getId());
                 }
