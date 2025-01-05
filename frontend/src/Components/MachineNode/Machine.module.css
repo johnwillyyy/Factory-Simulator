@@ -2,17 +2,26 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 100px;
-    height: 50px;
+    width: 30px;
+    height: 30px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     color: black;
     font-size: x-small;
   }
+
+  .machineTime {
+    font-family: 'Arial', sans-serif; /* Elegant, clean font */
+    font-size: 8px; /* Smaller font size */
+    font-weight: 300; /* Lighter weight for elegance */
+    color: #666666; /* Subtle, soft text color */
+    margin: 0; /* Remove default margin */
+    padding: 0; /* Optional: to remove any padding */
+    letter-spacing: 0.5px; /* Adds a little spacing for a clean look */
+  }
   
   .machineIcon {
-    width: 25px;
-    height: 25px;
-    margin-left: 8%;
+    width: 15px;
+    height: 15px;
   }
   
   .handle {

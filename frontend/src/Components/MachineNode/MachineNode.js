@@ -5,6 +5,10 @@ import machineIcon from '../../assets/machine_icon.png';
 
 const Machine = ({ id , data}) => {
   return (
+    
+    <>
+    <p className={styles.machineTime}>Time:  {data.time}</p>
+    <div>
     <div className={styles.machineNode}>
       <Handle
         type="source"
@@ -12,13 +16,15 @@ const Machine = ({ id , data}) => {
         className={styles.handle}
       />
       <img src={machineIcon} alt="Machine" className={styles.machineIcon} />
-        {id} + {data.time}
+
       <Handle
         type="target"
         position={Position.Right}
         className={styles.handle}
       />
     </div>
+    </div>
+    </>
   );
 };
 
