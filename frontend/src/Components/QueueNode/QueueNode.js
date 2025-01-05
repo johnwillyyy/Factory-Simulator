@@ -1,27 +1,33 @@
 import React from 'react';
 import { Handle, Position } from 'react-flow-renderer';
-import styles from './Queue.module.css';  // Import the CSS module
+import { FaPlus } from 'react-icons/fa'; // Import Font Awesome Plus Icon
+import styles from './Queue.module.css';
 
-const Queue = ({ data,id }) => {
+const Queue = ({ data, id }) => {
   return (
     <div className={styles.queueContainer}>
       <p>{id}</p>
-      <Handle
-        type="source"
-        position={Position.Left}
-        className={styles.handle}
-      />
-     <div className={styles.scrollContainer}>
-  {data.colors.map((color, index) => (
-    <div key={index} className={styles.circle} style={{ backgroundColor: color }}></div>
-  ))}
-      </div>
-      <Handle
-        type="target"
-        position={Position.Right}
-        className={styles.handle}
-      />
-      <p>{data.colors.length} products(s)</p>
+      <Handle type="source" position={Position.Left} className={styles.handle} />
+      <div className={styles.scrollContainer}>
+      {data.colors && data.colors.length > 0 ? (
+        data.colors.map((color, index) => (
+          <div
+            key={index}
+            className={styles.circle}
+            style={{ backgroundColor: color }}
+          ></div>
+        ))
+      ) : (
+        <p className={styles.emptyMessage}>Empty</p>
+      )}
+    </div>
+      <Handle type="target" position={Position.Right} className={styles.handle} />
+      <p>{data.colors.length} product(s)</p>
+      <button 
+        onClick={() => data.onAddColor(id)} 
+        className={styles.addButton}>
+        <FaPlus />
+      </button>
     </div>
   );
 };
