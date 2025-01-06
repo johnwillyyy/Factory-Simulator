@@ -23,7 +23,7 @@ public class QueueNode implements Subject {
     private final Object lock = new Object();
     ExecutorService executor;
     private final static CareTaker careTaker = new CareTaker();
-    private boolean isReplayState = false;
+    private volatile boolean isReplayState = false;
     private volatile boolean running = true;
 
 
@@ -51,9 +51,14 @@ public class QueueNode implements Subject {
         setBlockedQueue();
     }
 
+    private Thread queueThread;
+
     private void startQueueThread() {
-        running = true;
-        executor.submit(getAddToQueueThread());
+        if (queueThread == null || !queueThread.isAlive()) {
+            running = true;
+            queueThread = new Thread(getAddToQueueThread());
+            queueThread.start();
+        }
     }
 
     private Runnable getAddToQueueThread() {
@@ -62,8 +67,12 @@ public class QueueNode implements Subject {
             int randomInt;
             String randomColour;
             Memento memento;
+            Map<String, String> stateMap = new HashMap<>();
+            stateMap.put("time", "-1");
+            stateMap.put("color", "dummy");
+            careTaker.saveMemento(new Memento(stateMap));
 
-            while (running && !executor.isShutdown()) {
+            while (!executor.isShutdown()) {
                 try {
                     randomInt = -1;
                     randomColour = null;
@@ -74,11 +83,17 @@ public class QueueNode implements Subject {
                         memento = careTaker.getMemento();
                         if (memento == null) {
                             System.out.println("No more mementos available. Exiting replay for node: " + this.getId());
+                            running = false;
                             break;
                         }
 
                         randomInt = Integer.parseInt(memento.getState().get("time"));
                         randomColour = memento.getState().get("color");
+
+                        if (randomInt == -1 || "dummy".equals(randomColour)) {
+                            running = false;
+                            continue;
+                        }
 
                         System.out.println("Replayed state - Time: " + randomInt + ", Colour: " + randomColour);
                         sleepWithPause(randomInt);
@@ -97,13 +112,12 @@ public class QueueNode implements Subject {
 
                         if (isReplayState) continue;
 
-                        Map<String, String> stateMap = new HashMap<>();
+                        stateMap = new HashMap<>();
                         stateMap.put("time", String.valueOf(randomInt));
                         stateMap.put("color", randomColour);
 
                         sleepWithPause(randomInt);
                         if (isReplayState) continue;
-
 
                         webSocketData.setWebSocketData("None", "None", this.getId(), randomColour);
                         webSocketService.sendJsonMessage(webSocketData);
@@ -114,7 +128,6 @@ public class QueueNode implements Subject {
                         System.out.println(randomColour + " added by inputQueueThread: " + this.getId());
                     }
 
-
                 } catch (Exception e) {
                     System.err.println("Unexpected error in thread for node: " + this.getId() + " - " + e.getMessage());
                     e.printStackTrace();
@@ -122,6 +135,13 @@ public class QueueNode implements Subject {
                 }
             }
         };
+    }
+
+    private void stopQueueThread() {
+        running = false;
+        if (queueThread != null && queueThread.isAlive()) {
+            queueThread.interrupt();
+        }
     }
 
 
@@ -136,7 +156,7 @@ public class QueueNode implements Subject {
                 remainingTime -= sleepInterval;
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                System.err.println("Interrupted during sleep.");
+                System.err.println("Queue Interrupted during sleep.");
                 break;
             }
         }
@@ -260,11 +280,17 @@ public class QueueNode implements Subject {
 
     @Override
     public void removeObserver(Observer observer) {
+        if (observers == null){
+            observers = new ArrayList<>();
+        }
         observers.remove(observer);
     }
 
     @Override
     public void notifyObservers() {
+        if (observers == null){
+            observers = new ArrayList<>();
+        }
         for (Observer observer : observers){
             observer.update();
         }

@@ -99,13 +99,14 @@ public class Machine implements Runnable, Observer {
 
                     this.getStyle().setBackground("#FFFFFF");
                     setNextQueue();
-                    nextChosenQueue.addToBlockedQueue(productColour);
-                    System.out.println(id + " finished!");
-                    System.out.println(nextChosenQueue.getId() + " Next Size: " + nextChosenQueue.getSize());
                     webSocketData.setWebSocketData("None", "None", nextChosenQueue.getId(), productColour);
                     webSocketService.sendJsonMessage(webSocketData);
                     webSocketData.setWebSocketData(id, "None", "None", "#FFFFFF");
                     webSocketService.sendJsonMessage(webSocketData);
+                    nextChosenQueue.addToBlockedQueue(productColour);
+                    System.out.println(id + " finished!");
+                    System.out.println(nextChosenQueue.getId() + " Next Size: " + nextChosenQueue.getSize());
+
 
                     sleepWithPause(1000);
 
@@ -136,7 +137,7 @@ public class Machine implements Runnable, Observer {
                 remainingTime -= sleepInterval;
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                System.out.println("Interrupted during sleep.");
+                System.out.println("Machine Interrupted during sleep.");
                 break;
             }
         }
@@ -150,7 +151,7 @@ public class Machine implements Runnable, Observer {
                     lock.wait();  // Wait if paused
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
-                    System.out.println("Thread interrupted while waiting to resume.");
+                    System.out.println("Machine Thread interrupted while waiting to resume.");
                 }
             }
         }

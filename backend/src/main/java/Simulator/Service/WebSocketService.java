@@ -28,7 +28,7 @@ public class WebSocketService {
 
             try {
                 // Add small delay to ensure message ordering
-                Thread.sleep(200);
+                Thread.sleep(100);
                 String jsonString = objectMapper.writeValueAsString(data);
                 session.sendMessage(new TextMessage(jsonString));
                 // Add small delay after sending

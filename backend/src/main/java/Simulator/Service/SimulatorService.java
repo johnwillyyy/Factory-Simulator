@@ -138,9 +138,7 @@ public class SimulatorService {
     }
 
     public void deleteSimulation() {
-        if (paused){
-            resumeSimulation();
-        }
+        resumeSimulation();
 
         executor.shutdown();  // Graceful shutdown
 
