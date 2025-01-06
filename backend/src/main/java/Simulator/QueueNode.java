@@ -3,11 +3,10 @@ package Simulator;
 import Simulator.Observer.Observer;
 import Simulator.Observer.Subject;
 import Simulator.Service.WebSocketService;
+import Simulator.SnapShot.CareTaker;
+import Simulator.SnapShot.Memento;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -23,19 +22,18 @@ public class QueueNode implements Subject {
     private volatile boolean paused = false;
     private final Object lock = new Object();
     ExecutorService executor;
+    private final static CareTaker careTaker = new CareTaker();
+    private boolean isReplayState = false;
+    private volatile boolean running = true;
 
 
     private List<Observer> observers;
 
     public void setExecutor(ExecutorService executor) {
         this.executor = executor;
-
-        if (data.isInput) {
-            Thread queueThread = getAddToQueueThread();
-            queueThread.start();
-        }
+        running = false;  // Signal existing thread to stop
+        if (data.isInput) startQueueThread();
     }
-
 
     public QueueNode(Map<String, Object> node, WebSocketService webSocketService) {
         this.webSocketService = webSocketService;
@@ -44,7 +42,6 @@ public class QueueNode implements Subject {
         this.id = (String) node.get("id");
         this.type = (String) node.get("type");
 
-
         Map<String, Object> posMap = (Map<String, Object>) node.get("position");
         this.position = new Position(posMap);
 
@@ -52,32 +49,100 @@ public class QueueNode implements Subject {
         this.data = new Data(dataMap);
 
         setBlockedQueue();
-
     }
 
-    private Thread getAddToQueueThread() {
-        Random random = new Random();
-        Thread queueThread = new Thread(() -> {
-            while (!executor.isShutdown()) {
+    private void startQueueThread() {
+        running = true;
+        executor.submit(getAddToQueueThread());
+    }
+
+    private Runnable getAddToQueueThread() {
+        return () -> {
+            Random random = new Random();
+            int randomInt;
+            String randomColour;
+            Memento memento;
+
+            while (running && !executor.isShutdown()) {
                 try {
-                    checkPause();
-                    int randomInt = 1000 + random.nextInt(9000); // 0 to 16777215
-                    String randomColour = generateRandomColour();
-                    checkPause();
-                    Thread.sleep(randomInt);  // from 1 sec to 10 sec
-                    checkPause();
-                    webSocketData.setWebSocketData("None","None",this.getId(),randomColour);
-                    webSocketService.sendJsonMessage(webSocketData);
-                    addToBlockedQueue(randomColour);
-                    System.out.println(randomColour + "added by inputQueueThread:" + this.getId());
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
+                    randomInt = -1;
+                    randomColour = null;
+
+                    if (isReplayState) {
+                        System.out.println("Replaying previous state for node: " + this.getId());
+
+                        memento = careTaker.getMemento();
+                        if (memento == null) {
+                            System.out.println("No more mementos available. Exiting replay for node: " + this.getId());
+                            break;
+                        }
+
+                        randomInt = Integer.parseInt(memento.getState().get("time"));
+                        randomColour = memento.getState().get("color");
+
+                        System.out.println("Replayed state - Time: " + randomInt + ", Colour: " + randomColour);
+                        sleepWithPause(randomInt);
+
+                        webSocketData.setWebSocketData("None", "None", this.getId(), randomColour);
+                        webSocketService.sendJsonMessage(webSocketData);
+
+                        addToBlockedQueue(randomColour);
+                        System.out.println(randomColour + " added by inputQueueThread: " + this.getId());
+
+                    } else {
+                        System.out.println("Generating new state for node: " + this.getId());
+
+                        randomInt = 1000 + random.nextInt(9000);
+                        randomColour = generateRandomColour();
+
+                        if (isReplayState) continue;
+
+                        Map<String, String> stateMap = new HashMap<>();
+                        stateMap.put("time", String.valueOf(randomInt));
+                        stateMap.put("color", randomColour);
+
+                        sleepWithPause(randomInt);
+                        if (isReplayState) continue;
+
+
+                        webSocketData.setWebSocketData("None", "None", this.getId(), randomColour);
+                        webSocketService.sendJsonMessage(webSocketData);
+                        addToBlockedQueue(randomColour);
+                        careTaker.saveMemento(new Memento(stateMap));
+                        System.out.println("State saved: " + stateMap);
+
+                        System.out.println(randomColour + " added by inputQueueThread: " + this.getId());
+                    }
+
+
+                } catch (Exception e) {
+                    System.err.println("Unexpected error in thread for node: " + this.getId() + " - " + e.getMessage());
                     e.printStackTrace();
+                    break;
                 }
             }
-        });
-        return queueThread;
+        };
     }
+
+
+    private void sleepWithPause(long totalSleepTimeMs) {
+        long remainingTime = totalSleepTimeMs;
+        long sleepInterval = 100; // Sleep in 100 ms chunks
+
+        while (remainingTime > 0) {
+            checkPause();
+            try {
+                Thread.sleep(Math.min(sleepInterval, remainingTime));
+                remainingTime -= sleepInterval;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                System.err.println("Interrupted during sleep.");
+                break;
+            }
+        }
+    }
+
+
 
     private void checkPause() {
         synchronized (lock) {
@@ -86,7 +151,7 @@ public class QueueNode implements Subject {
                     lock.wait();  // Wait if paused
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
-                    System.out.println("Thread interrupted while waiting to resume.");
+                    System.err.println("Thread interrupted while waiting to resume.");
                 }
             }
         }
@@ -137,6 +202,10 @@ public class QueueNode implements Subject {
 
     public void setType(String type) {
         this.type = type;
+    }
+
+    public void setReplayState(boolean replayState) {
+        isReplayState = replayState;
     }
 
     public Position getPosition() {

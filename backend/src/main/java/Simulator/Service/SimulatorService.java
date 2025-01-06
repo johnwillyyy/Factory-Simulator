@@ -51,6 +51,8 @@ public class SimulatorService {
                 } else if ("queue".equals(type)) {
                     QueueNode queueNode = new QueueNode(node,webSocketService);
                     idToNode.put(node.get("id").toString(), queueNode);  // Add to idToNode map
+                    queueNode.setReplayState(false);
+
                 }
             }
         }
@@ -136,6 +138,10 @@ public class SimulatorService {
     }
 
     public void deleteSimulation() {
+        if (paused){
+            resumeSimulation();
+        }
+
         executor.shutdown();  // Graceful shutdown
 
         try {
@@ -147,6 +153,34 @@ public class SimulatorService {
             Thread.currentThread().interrupt();
         }
         paused = false;
+    }
+
+    public void replaySimulation() {
+        List<Map<String, Object>> nodes = (List<Map<String, Object>>) components.get("nodes");
+
+        webSocketService.sendJsonMessage(nodes);
+
+        deleteSimulation();
+        if (executor.isShutdown()){
+            executor = Executors.newFixedThreadPool(10);
+        }
+
+
+        for (Map<String, Object> node : nodes) {
+            String type = (String) node.get("type");
+            if ("machine".equals(type)) {
+                String id = (String) node.get("id");
+                Machine machine = (Machine) idToNode.get(id);
+                machine.getStyle().setBackground("#FFFFFF");
+
+            }else if ("queue".equals(type)) {
+                String id = (String) node.get("id");
+                QueueNode queueNode = (QueueNode) idToNode.get(id);
+                queueNode.setBlockedQueue();
+                queueNode.setReplayState(true);
+            }
+        }
+        startSimulation();
     }
 
 }

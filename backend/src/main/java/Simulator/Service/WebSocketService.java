@@ -28,11 +28,11 @@ public class WebSocketService {
 
             try {
                 // Add small delay to ensure message ordering
-                Thread.sleep(1);
+                Thread.sleep(200);
                 String jsonString = objectMapper.writeValueAsString(data);
                 session.sendMessage(new TextMessage(jsonString));
                 // Add small delay after sending
-                Thread.sleep(1);
+                Thread.sleep(200);
             } catch (IOException e) {
                 System.err.println("Failed to send WebSocket message: " + e.getMessage());
             } catch (InterruptedException e) {

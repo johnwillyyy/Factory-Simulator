@@ -42,41 +42,47 @@ const FlowComponent = () => {
         const data = JSON.parse(event.data);
         console.log('Received data:', data);
         console.log("Nodes",nodes);
-        setNodes((prevNodes) =>
-          prevNodes.map((node) => {
-            if (node.id === data.machineId) {
-              return {
-                ...node,
-                style: {
-                  ...node.style,
-                  backgroundColor: data.color,
-                },
-              };
-            }
-            
-            if (node.id === data.prevQueueId) {
-              return {
-                ...node,
-                data: {
-                  ...node.data,
-                  colors: removeFirstAppearance(node.data.colors, data.color)
-                }
-              };
-            }
-            
-            if (node.id === data.nextQueueId) {
-              return {
-                ...node,
-                data: {
-                  ...node.data,
-                  colors: [...node.data.colors, data.color] // Append colour to the end
-                }
-              };
-            }
-            
-            return node;
-          })
-        );
+        console.log(data.machineId)
+        if(!(data.machineId || data.prevQueueId || data.nextQueueId)){
+          setNodes(data)
+          console.log("replayed: "+data)
+        }else{
+          setNodes((prevNodes) =>
+            prevNodes.map((node) => {
+              if (node.id === data.machineId) {
+                return {
+                  ...node,
+                  style: {
+                    ...node.style,
+                    backgroundColor: data.color,
+                  },
+                };
+              }
+              
+              if (node.id === data.prevQueueId) {
+                return {
+                  ...node,
+                  data: {
+                    ...node.data,
+                    colors: removeFirstAppearance(node.data.colors, data.color)
+                  }
+                };
+              }
+              
+              if (node.id === data.nextQueueId) {
+                return {
+                  ...node,
+                  data: {
+                    ...node.data,
+                    colors: [...node.data.colors, data.color] // Append colour to the end
+                  }
+                };
+              }
+              
+              return node;
+            })
+          );
+      }
         
       } catch (error) {
         console.error('Error parsing message:', error);
@@ -264,6 +270,18 @@ const FlowComponent = () => {
       console.error('WebSocket is not open. Cannot send data.');
     }
   };
+  
+  const ReplaySimulation = () => {
+    if (webSocket && webSocket.readyState === WebSocket.OPEN) {
+      // You can send a message or just stop any ongoing updates from the WebSocket here
+      webSocket.send(JSON.stringify({ action: 'replay' }));
+      console.log('Simulation replayed');
+      setPaused(false);
+      setSimulating(true);
+    } else {
+      console.error('WebSocket is not open. Cannot send data.');
+    }
+  };
 
   useEffect(() => {
     const handleDown = (e) => {
@@ -327,7 +345,7 @@ const FlowComponent = () => {
           <button className={styles.enabledButton} onClick={deleteSimulation}>
             Delete Simulation
           </button>
-          <button className={styles.enabledButton} >
+          <button className={simulating ? (paused? styles.enabledButton : styles.disabledButton) : styles.enabledButton} onClick={ReplaySimulation} disabled={!((simulating && paused) || !simulating)}>
             Replay Simulation
           </button>
           <button className={!simulating ? styles.disabledButton : styles.enabledButton} onClick={pauseSimulation} disabled={!simulating}>

@@ -29,9 +29,11 @@ public class WebSocketHandler extends TextWebSocketHandler {
         try {
             if ("pause".equals(messageMap.getOrDefault("action", ""))){
                 simulatorService.stopSimulation();
-            } else if ("delete".equals(messageMap.getOrDefault("action", ""))) {
+            }else if ("delete".equals(messageMap.getOrDefault("action", ""))) {
                 simulatorService.deleteSimulation();
-            } else{
+            }else if ("replay".equals(messageMap.getOrDefault("action", ""))) {
+                simulatorService.replaySimulation();
+            }else{
             simulatorService.setComponents(messageMap,session);
             }
         }catch (RuntimeException e){
